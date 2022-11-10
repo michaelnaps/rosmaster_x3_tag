@@ -99,77 +99,63 @@ class Grid:
         return np.meshgrid(self.xx_ticks, self.yy_ticks)
 
 
-class Torus:
-    """
-    A class that holds functions to compute the embedding and display a torus
-    and curves on it.
-    """
-    def phi(self, theta):
+class Edge:
+    """ Class for storing edges and checking collisions among them. """
+    def __init__(self, vertices):
         """
-        Implements equation (eq:chartTorus).
+        Save the input coordinates to the internal attribute  vertices.
         """
-        phi_circle = rot2d(theta[0]) @ np.vstack((1, 0))
-        phi_circle_mat = np.array([[1, 0], [0, 0], [0, 1]])
-        phi_circle_trans = np.vstack((3, 0, 0))
-        rot_xy_around_z = block_diag(rot2d(theta[1]), 1)
-        x_torus = rot_xy_around_z @ (
-            (phi_circle_mat @ phi_circle) + phi_circle_trans)
-        return x_torus
+        self.vertices = vertices
 
-    def plot(self):
-        """
-        For the embedding over the domain U from the previous question:
-        """
-        nb_grid = 33
+    @property
+    def direction(self):
+        """ Difference between tip and base """
+        return self.vertices[:, [1]] - self.vertices[:, [0]]
 
-        ticks = np.linspace(0, 2 * math.pi, nb_grid)
-        grid = Grid(ticks, ticks)
-        fun_eval = grid.eval(self.phi)
-        axis = gca_3d()
-        axis.plot_surface(fun_eval[:, :, 0], fun_eval[:, :, 1], fun_eval[:, :,
-                                                                         2])
-        plt.show()
+    @property
+    def base(self):
+        """ Coordinates of the first vertex"""
+        return self.vertices[:, [0]]
 
-    def phi_push_curve(self, a_line, b_line):
+    def plot(self, *args, **kwargs):
+        """ Plot the edge """
+        plt.plot(self.vertices[0, :], self.vertices[1, :], *args, **kwargs)
+
+    def is_collision(self, edge):
         """
-        This function evaluates the curve x(t)= phi_torus ( phi(t) )  R^3 at  nb_points=31 points
-        generated along the curve phi(t) using line_linspaceLine.linspace with  tMin=0 and  tMax=1,
-        and a, b as given in the input arguments.
+         Returns  True if the two edges intersect.  Note: if the two edges
+        overlap but are colinear, or they overlap only at a single endpoint,
+        they are not considered as intersecting (i.e., in these cases the
+        function returns  False). If one of the two edges has zero length, the
+        function should always return the result that edges are
+        non-intersecting.
         """
-        x_points = []
-        nb_points = 31
-        theta_sequence = line_linspace(a_line, b_line, 0, 1, nb_points)
-        x_points = np.zeros((3, nb_points))
-        for idx_points in range(nb_points):
-            curr_theta = np.vstack(theta_sequence[:, idx_points])
-            x_points[:, [idx_points]] = self.phi(curr_theta)
 
-        return x_points
+        # Write the lines from the two edges as
+        # x_i(t_i)=edge_base+edge.direction*t_i
+        # Then finds the parameters for the intersection by solving the linear
+        # system obtained from x_1(t_1)=x_2(t_2)
 
-    def plot_curves(self):
-        """
-        The function should iterate over the following four curves:
-        - 3/4*pi0
-        - 3/4*pi3/4*pi
-        - -3/4*pi3/4*pi
-        - 0 -3/4*pi  and  b=np.array([[-1],[-1]]).
-        The function should show an overlay containing:
-        - The output of Torus.plotCharts;
-        - The output of the functions torus_pushCurveTorus.pushCurve for each one of the curves.
-        """
-        a_lines = [
-            np.array([[3 / 4 * math.pi], [0]]),
-            np.array([[3 / 4 * math.pi], [3 / 4 * math.pi]]),
-            np.array([[-3 / 4 * math.pi], [3 / 4 * math.pi]]),
-            np.array([[0], [-3 / 4 * math.pi]])
-        ]
+        # Tolerance for cases involving parallel lines and endpoints
+        tol = 1e-6
 
-        b_line = np.array([[-1], [-1]])
+        # The matrix of the linear system
+        a_directions = np.hstack([self.direction, -edge.direction])
+        if abs(np.linalg.det(a_directions)) < tol:
+            # Lines are practically parallel
+            return False
+        # The vector of the linear system
+        b_bases = np.hstack([edge.base - self.base])
 
-        axis = gca_3d()
-        for a_line in a_lines:
-            x_points = self.phi_push_curve(a_line, b_line)
-            axis.plot(x_points[0, :], x_points[1, :], x_points[2, :])
+        # Solve the linear system
+        t_param = np.linalg.solve(a_directions, b_bases)
+        t_self = t_param[0, 0]
+        t_other = t_param[1, 0]
+
+        # Check that collision point is strictly between endpoints of each edge
+        flag_collision = tol < t_self < 1.0 - tol and tol < t_other < 1.0 - tol
+
+        return flag_collision
 
 
 class Polygon:
@@ -332,63 +318,91 @@ class Polygon:
         return flag_points
 
 
-class Edge:
-    """ Class for storing edges and checking collisions among them. """
-    def __init__(self, vertices):
+class Sphere:
+    """ Class for plotting and computing distances to spheres (circles, in 2-D). """
+    def __init__(self, center, radius, distance_influence=0):
         """
-        Save the input coordinates to the internal attribute  vertices.
+        Save the parameters describing the sphere as internal attributes.
         """
-        self.vertices = vertices
+        self.center = center
+        self.radius = radius
+        self.distance_influence = distance_influence
 
-    @property
-    def direction(self):
-        """ Difference between tip and base """
-        return self.vertices[:, [1]] - self.vertices[:, [0]]
-
-    @property
-    def base(self):
-        """ Coordinates of the first vertex"""
-        return self.vertices[:, [0]]
-
-    def plot(self, *args, **kwargs):
-        """ Plot the edge """
-        plt.plot(self.vertices[0, :], self.vertices[1, :], *args, **kwargs)
-
-    def is_collision(self, edge):
+    def plot(self, color='k', ax=None):
         """
-         Returns  True if the two edges intersect.  Note: if the two edges
-        overlap but are colinear, or they overlap only at a single endpoint,
-        they are not considered as intersecting (i.e., in these cases the
-        function returns  False). If one of the two edges has zero length, the
-        function should always return the result that edges are
-        non-intersecting.
+        This function draws the sphere (i.e., a circle) of the given radius, and the specified color,
+        and then draws another circle in gray with radius equal to the distance of influence.
         """
+        # Get current axes
+        if ax is None:
+            ax = plt.gca()
 
-        # Write the lines from the two edges as
-        # x_i(t_i)=edge_base+edge.direction*t_i
-        # Then finds the parameters for the intersection by solving the linear
-        # system obtained from x_1(t_1)=x_2(t_2)
+        # adjust axes
+        plt.axis('equal')
+        plt.axis(
+            [self.center[0][0] - 2*self.radius,
+            self.center[0][0] + 2*self.radius,
+            self.center[1][0] - 2*self.radius,
+            self.center[1][0] + 2*self.radius,]
+        )
 
-        # Tolerance for cases involving parallel lines and endpoints
-        tol = 1e-6
+        # Add circle as a patch
+        if self.radius > 0:
+            # Circle is filled in
+            kwargs = {'facecolor': (0.3, 0.3, 0.3)}
+            radius_influence = self.radius + self.distance_influence
+        else:
+            # Circle is hollow
+            kwargs = {'fill': False}
+            radius_influence = -self.radius - self.distance_influence
 
-        # The matrix of the linear system
-        a_directions = np.hstack([self.direction, -edge.direction])
-        if abs(np.linalg.det(a_directions)) < tol:
-            # Lines are practically parallel
-            return False
-        # The vector of the linear system
-        b_bases = np.hstack([edge.base - self.base])
+        center = (self.center[0, 0], self.center[1, 0])
+        ax.add_patch(
+            plt.Circle(center,
+                       radius=abs(self.radius),
+                       edgecolor=color,
+                       **kwargs))
 
-        # Solve the linear system
-        t_param = np.linalg.solve(a_directions, b_bases)
-        t_self = t_param[0, 0]
-        t_other = t_param[1, 0]
+        ax.add_patch(
+            plt.Circle(center,
+                       radius=radius_influence,
+                       edgecolor=(0.7, 0.7, 0.7),
+                       fill=False))
 
-        # Check that collision point is strictly between endpoints of each edge
-        flag_collision = tol < t_self < 1.0 - tol and tol < t_other < 1.0 - tol
+    def distance(self, points):
+        center = np.array([self.center[0][0], self.center[1][0]])
+        points_dist = [];
 
-        return flag_collision
+        # d(x, x_c) = 1/2 * ||x - x_c||^2
+        for point in points.transpose():
+            dist = np.linalg.norm(point - center)
+            dist -= self.radius
+            # dist -= self.distance_influence
+            points_dist.append(dist)
+
+        return np.array(points_dist)
+
+    def distance_grad(self, points):
+        """
+        Computes the gradient of the signed distance between points and the
+        sphere, consistently with the definition of Sphere.distance.
+        """
+        center = np.array([self.center[0][0], self.center[1][0]])
+
+        # grad d(x, x_c) = (x - x_c) / ||x - x_c||
+        points_grad = []
+        points_dist = self.distance(points)
+        for i, point in enumerate(points.transpose()):
+            if np.abs(points_dist[i]) > 0:
+                points_grad.append((point - center) / points_dist[i])
+            else:
+                points_grad.append([0, 0])
+        points_grad = np.array(points_grad)
+        return points_grad.transpose()
+
+    def is_collision(self, points):
+        points_dist = self.distance(points)
+        return [distance < 0 for distance in points_dist]
 
 
 def angle(vertex0, vertex1, vertex2, angle_type='unsigned'):
