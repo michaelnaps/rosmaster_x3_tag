@@ -1,7 +1,3 @@
-"""
- Please merge the functions and classes from this file with the same file from the previous
- homework assignment
-"""
 
 import math
 import numbers
@@ -55,6 +51,52 @@ def line_linspace(a_line, b_line, t_min, t_max, nb_points):
     t_sequence = np.linspace(t_min, t_max, nb_points)
     theta_points = a_line * t_sequence + b_line
     return theta_points
+
+
+def angle(vertex0, vertex1, vertex2, angle_type='unsigned'):
+    """
+    Compute the angle between two edges  vertex0-- vertex1 and  vertex0--
+    vertex2 having an endpoint in common. The angle is computed by starting
+    from the edge  vertex0-- vertex1, and then ``walking'' in a
+    counterclockwise manner until the edge  vertex0-- vertex2 is found.
+    """
+    # tolerance to check for coincident points
+    tol = 2.22e-16
+
+    # compute vectors corresponding to the two edges, and normalize
+    vec1 = vertex1 - vertex0
+    vec2 = vertex2 - vertex0
+
+    norm_vec1 = np.linalg.norm(vec1)
+    norm_vec2 = np.linalg.norm(vec2)
+    if norm_vec1 < tol or norm_vec2 < tol:
+        # vertex1 or vertex2 coincides with vertex0, abort
+        edge_angle = math.nan
+        return edge_angle
+
+    vec1 = vec1 / norm_vec1
+    vec2 = vec2 / norm_vec2
+
+    # Transform vec1 and vec2 into flat 3-D vectors,
+    # so that they can be used with np.inner and np.cross
+    vec1flat = np.vstack([vec1, 0]).flatten()
+    vec2flat = np.vstack([vec2, 0]).flatten()
+
+    c_angle = np.inner(vec1flat, vec2flat)
+    s_angle = np.inner(np.array([0, 0, 1]), np.cross(vec1flat, vec2flat))
+
+    edge_angle = math.atan2(s_angle, c_angle)
+
+    angle_type = angle_type.lower()
+    if angle_type == 'signed':
+        # nothing to do
+        pass
+    elif angle_type == 'unsigned':
+        edge_angle = (edge_angle + 2 * math.pi) % (2 * math.pi)
+    else:
+        raise ValueError('Invalid argument angle_type')
+
+    return edge_angle
 
 
 class Grid:
@@ -178,22 +220,28 @@ class Polygon:
         """
         self.vertices = np.fliplr(self.vertices)
 
-    def plot(self, style=None):
-        """
-        Plot the polygon using Matplotlib.
-        """
-        if style is None or len(style) == 0:
-            style = 'k'
+    def plot(self, color='#9C9C9C', q_color='k'):
+
+        # choose color based on rotation direction
+        if self.is_filled():
+            inside = color
+            outside = '#FCFCFC'
+        else:
+            inside = '#FCFCFC'
+            outside = color
+
+        plt.fill(
+            self.vertices[0], self.vertices[1],
+            color=inside
+        )
 
         directions = np.diff(self.vertices_loop)
-        plt.quiver(self.vertices[0, :],
-                   self.vertices[1, :],
-                   directions[0, :],
-                   directions[1, :],
-                   color=style,
-                   angles='xy',
-                   scale_units='xy',
-                   scale=1.)
+        plt.quiver(
+            self.vertices[0, :], self.vertices[1, :],
+            directions[0, :],    directions[1, :],
+            color=q_color, angles='xy',
+            scale_units='xy', scale=1.
+        )
 
     @property
     def vertices_loop(self):
@@ -228,28 +276,10 @@ class Polygon:
         return running_sum < 0
 
     def is_self_occluded(self, idx_vertex, point):
-        """
-        Given the corner of a polygon, checks whether a given point is
-        self-occluded or not by that polygon (i.e., if it is ``inside'' the
-        corner's cone or not). Points on boundary (i.e., on one of the sides of
-        the corner) are not considered self-occluded. Note that to check
-        self-occlusion, we just need a vertex index  idx_vertex. From this, one
-        can obtain the corresponding  vertex, and the  vertex_prev and
-        vertex_next that precede and follow that vertex in the polygon. This
-        information is sufficient to determine self-occlusion. To convince
-        yourself, try to complete the corners shown in Figure~
-        fig:self-occlusion with clockwise and counterclockwise polygons, and
-        you will see that, for each example, only one of these cases can be
-        consistent with the arrow directions.
-        """
         vertex = self.vertices[:, [idx_vertex]]
         vertex_next = self.vertices[:, [(idx_vertex + 1) % self.nb_vertices]]
         vertex_prev = self.vertices[:, [(idx_vertex - 1) % self.nb_vertices]]
 
-        # The point is occluded if, measuring angles using p-vertex as the
-        # "zero angle", the angle for vertex_prev is smaller than the one
-        # for vertex_next. Using the 'unsigned' angles means that we do not
-        # have to worry separately about negative angles
         angle_p_prev = angle(vertex, point, vertex_prev, 'unsigned')
         angle_p_next = angle(vertex, point, vertex_next, 'unsigned')
 
@@ -328,28 +358,21 @@ class Sphere:
         self.radius = radius
         self.distance_influence = distance_influence
 
-    def plot(self, color='k', ax=None):
+    def plot(self, color='#9C9C9C'):
         """
         This function draws the sphere (i.e., a circle) of the given radius, and the specified color,
         and then draws another circle in gray with radius equal to the distance of influence.
         """
         # Get current axes
-        if ax is None:
-            ax = plt.gca()
+        ax = plt.gca()
 
-        # adjust axes
+        # # adjust axes
         plt.axis('equal')
-        plt.axis(
-            [self.center[0][0] - 2*self.radius,
-            self.center[0][0] + 2*self.radius,
-            self.center[1][0] - 2*self.radius,
-            self.center[1][0] + 2*self.radius,]
-        )
 
         # Add circle as a patch
         if self.radius > 0:
             # Circle is filled in
-            kwargs = {'facecolor': (0.3, 0.3, 0.3)}
+            kwargs = {'facecolor': color}
             radius_influence = self.radius + self.distance_influence
         else:
             # Circle is hollow
@@ -366,7 +389,7 @@ class Sphere:
         ax.add_patch(
             plt.Circle(center,
                        radius=radius_influence,
-                       edgecolor=(0.7, 0.7, 0.7),
+                       edgecolor='k',
                        fill=False))
 
     def distance(self, points):
@@ -405,47 +428,49 @@ class Sphere:
         return [distance < 0 for distance in points_dist]
 
 
-def angle(vertex0, vertex1, vertex2, angle_type='unsigned'):
-    """
-    Compute the angle between two edges  vertex0-- vertex1 and  vertex0--
-    vertex2 having an endpoint in common. The angle is computed by starting
-    from the edge  vertex0-- vertex1, and then ``walking'' in a
-    counterclockwise manner until the edge  vertex0-- vertex2 is found.
-    """
-    # tolerance to check for coincident points
-    tol = 2.22e-16
+class Robot:
+    def __init__(self, sphere, role, color):
 
-    # compute vectors corresponding to the two edges, and normalize
-    vec1 = vertex1 - vertex0
-    vec2 = vertex2 - vertex0
+        self.q = np.array([
+            [sphere.center[0][0]],
+            [0],
+            [sphere.center[1][0]],
+            [0]
+        ]);
 
-    norm_vec1 = np.linalg.norm(vec1)
-    norm_vec2 = np.linalg.norm(vec2)
-    if norm_vec1 < tol or norm_vec2 < tol:
-        # vertex1 or vertex2 coincides with vertex0, abort
-        edge_angle = math.nan
-        return edge_angle
+        self.r = sphere.radius;
+        self.role = role;
+        self.color = color;
 
-    vec1 = vec1 / norm_vec1
-    vec2 = vec2 / norm_vec2
+    def plot(self):
+        center = np.array([[self.q[0]], [self.q[2]]]);
+        sphere = Sphere(center, self.r);
+        sphere.plot(color=self.color);
 
-    # Transform vec1 and vec2 into flat 3-D vectors,
-    # so that they can be used with np.inner and np.cross
-    vec1flat = np.vstack([vec1, 0]).flatten()
-    vec2flat = np.vstack([vec2, 0]).flatten()
+    def move(self, u, dt=0.001):
+        m = 1;
 
-    c_angle = np.inner(vec1flat, vec2flat)
-    s_angle = np.inner(np.array([0, 0, 1]), np.cross(vec1flat, vec2flat))
+        return self.q + dt*np.array(
+            [self.q[1]],
+            [u[0]/m],
+            [self.q[3]],
+            [u[1]/m]
+        );
 
-    edge_angle = math.atan2(s_angle, c_angle)
+    def animate(self, u, tspan):
+        pass;
 
-    angle_type = angle_type.lower()
-    if angle_type == 'signed':
-        # nothing to do
-        pass
-    elif angle_type == 'unsigned':
-        edge_angle = (edge_angle + 2 * math.pi) % (2 * math.pi)
-    else:
-        raise ValueError('Invalid argument angle_type')
 
-    return edge_angle
+class RobotEnvironment:
+    def __init__(self, walls, robots):
+        if walls.is_filled():
+            walls.flip();
+
+        self.walls = walls;
+        self.robots = robots;
+
+    def plot(self):
+        self.walls.plot();
+
+        for robot in self.robots:
+            robot.plot();
