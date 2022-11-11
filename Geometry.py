@@ -430,7 +430,6 @@ class Sphere:
 
 class Robot:
     def __init__(self, sphere, role, color):
-
         self.q = np.array([
             [sphere.center[0][0]],
             [0],
@@ -442,20 +441,42 @@ class Robot:
         self.role = role;
         self.color = color;
 
-    def plot(self):
+    @property
+    def position(self):
+        x = np.array([[self.q[0][0]], [self.q[2][0]]]);
+        return x;
+
+    @property
+    def velocity(self):
+        v = np.array([[self.q[1][0]], [self.q[3][0]]]);
+        return v;
+
+    @property
+    def sphere(self):
         center = np.array([[self.q[0]], [self.q[2]]]);
-        sphere = Sphere(center, self.r);
-        sphere.plot(color=self.color);
+        return Sphere(center, self.r);
+
+    def plot(self):
+        self.sphere.plot(color=self.color);
 
     def move(self, u, dt=0.001):
         m = 1;
 
-        return self.q + dt*np.array(
-            [self.q[1]],
-            [u[0]/m],
-            [self.q[3]],
-            [u[1]/m]
+        self.q = self.q + dt*np.array([
+            [self.q[1][0]],
+            [u[0][0]/m],
+            [self.q[3][0]],
+            [u[1][0]/m]
+        ]);
+
+        return self.q;
+
+    def impact(self, enemy):
+        d = np.linalg.norm(
+            self.position - enemy.position
         );
+        d -= (self.r + enemy.r);
+        return d < 0;
 
     def animate(self, u, tspan):
         pass;

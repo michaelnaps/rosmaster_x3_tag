@@ -35,4 +35,6 @@ def init_environment():
 if __name__ == "__main__":
 
     world, robots = init_environment();
-    world.plot();  plt.show();
+
+    print(world.robots[0].impact(world.robots[1]))
+    print(world.robots[0].impact(world.robots[2]))
