@@ -478,7 +478,7 @@ class Robot:
         d -= (self.r + enemy.r);
         return d < 0;
 
-    def animate(self, u, tspan):
+    def distance(self, shape, type):
         pass;
 
 
@@ -495,3 +495,6 @@ class RobotEnvironment:
 
         for robot in self.robots:
             robot.plot();
+
+    def animate(self, x_robots, tspan):
+        pass;
