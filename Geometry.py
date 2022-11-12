@@ -213,6 +213,13 @@ class Polygon:
         """ Number of vertices """
         return self.vertices.shape[1]
 
+    @property
+    def vertices_loop(self):
+        """
+        Returns self.vertices with the first vertex repeated at the end
+        """
+        return np.hstack((self.vertices, self.vertices[:, [0]]))
+
     def flip(self):
         """
         Reverse the order of the vertices (i.e., transform the polygon from
@@ -242,13 +249,6 @@ class Polygon:
             color=q_color, angles='xy',
             scale_units='xy', scale=1.
         )
-
-    @property
-    def vertices_loop(self):
-        """
-        Returns self.vertices with the first vertex repeated at the end
-        """
-        return np.hstack((self.vertices, self.vertices[:, [0]]))
 
     def is_filled(self):
         """
@@ -346,6 +346,28 @@ class Polygon:
             ]
         flag_points = [not flag for flag in flag_points]
         return flag_points
+
+    def distance(self, points):
+
+        dist = np.array([]);
+
+        for point in points.tranpose():
+            d_list = [];
+            for i_vx, vertex in enumerate(self.vertices.transpose()):
+                next_vertex = self.vertices_loop[:,i_vx+1];
+
+                l_i = np.linalg.norm(vertex.T);
+                l_j = np.linalg.norm(next_vertex);
+                w_ij = np.linalg.norm(vertex.T - next_vertex);
+
+                s_ij = 1/2*(l_i + l_j + w_ij);
+                A_ij = np.sqrt(s_ij*(s_ij - l_i)*(s_ij - l_j)*(s_ij - w_ij));
+
+                d_list.append(2*A_ij/w_ij);
+
+            np.append(dist, np.min(d_list));
+
+        return dist;
 
 
 class Sphere:
