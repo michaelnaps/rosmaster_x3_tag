@@ -35,3 +35,19 @@ def init_environment():
 if __name__ == "__main__":
 
     world, robots = init_environment();
+
+    bounds = 2*np.array([
+        [-2, 2, 2, -2],
+        [1, 1, -1, -1]
+    ]);
+    walls = gm.Polygon(bounds);
+
+    points = np.array([
+        [0, 1, 0, 0.25, 3],
+        [0, 0.5, 0.5, 0.25, 1]
+    ]);
+    print(walls.distance(points));
+
+    walls.plot();
+    plt.scatter(points[0], points[1]);
+    plt.show();

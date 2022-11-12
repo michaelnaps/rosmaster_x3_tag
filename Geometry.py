@@ -349,15 +349,18 @@ class Polygon:
 
     def distance(self, points):
 
-        dist = np.array([]);
+        dist = [];
 
-        for point in points.tranpose():
+        for point in points.transpose():
             d_list = [];
             for i_vx, vertex in enumerate(self.vertices.transpose()):
                 next_vertex = self.vertices_loop[:,i_vx+1];
 
-                l_i = np.linalg.norm(vertex.T);
-                l_j = np.linalg.norm(next_vertex);
+                print("v  =", vertex);
+                print("vn =", next_vertex);
+
+                l_i = np.linalg.norm(point - vertex);
+                l_j = np.linalg.norm(point - next_vertex);
                 w_ij = np.linalg.norm(vertex.T - next_vertex);
 
                 s_ij = 1/2*(l_i + l_j + w_ij);
@@ -365,9 +368,9 @@ class Polygon:
 
                 d_list.append(2*A_ij/w_ij);
 
-            np.append(dist, np.min(d_list));
+            dist.append(np.min(d_list));
 
-        return dist;
+        return np.array(dist);
 
 
 class Sphere:
