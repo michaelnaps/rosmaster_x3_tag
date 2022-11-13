@@ -255,18 +255,12 @@ class Polygon:
         Checks the ordering of the vertices, and returns whether the polygon is
         filled in or not.
         """
-
-        # Iterates over the columns of the 2D Matrix to perform the calculation
-        # sum((x_2 - x_1) * (y_2 + y_1))
-        # If the sum is negative, the polygon is oriented counter-clockwise,
-        # clockwise otherwise.
-
         num_cols = self.vertices.shape[1]
         running_sum = 0
 
         for i in range(num_cols - 1):
-            x_vals = self.vertices[0, :]
-            y_vals = self.vertices[1, :]
+            x_vals = self.vertices[0,:]
+            y_vals = self.vertices[1,:]
 
             # modulus is for the last element to be compared with the first
             # to close the shape
@@ -348,7 +342,6 @@ class Polygon:
         return flag_points
 
     def distance(self, points):
-
         dist = [];
 
         for point in points.transpose():
@@ -356,8 +349,8 @@ class Polygon:
             for i_vx, vertex in enumerate(self.vertices.transpose()):
                 next_vertex = self.vertices_loop[:,i_vx+1];
 
-                print("v  =", vertex);
-                print("vn =", next_vertex);
+                # print("v  =", vertex);
+                # print("vn =", next_vertex);
 
                 l_i = np.linalg.norm(point - vertex);
                 l_j = np.linalg.norm(point - next_vertex);
@@ -368,9 +361,24 @@ class Polygon:
 
                 d_list.append(2*A_ij/w_ij);
 
-            dist.append(np.min(d_list));
+            dist.append(d_list);
 
         return np.array(dist);
+
+    def distance_grad(self, point):
+        points_grad = [];
+        points_dist = self.distance(point);
+        for i, point in enumerate(points):
+            if nb.abs(points_dist[i]) > 0:
+                points_grad.append((point - self.position.T) / points_dist[i]);
+            else:
+                points_grad.append([0, 0]);
+        points_grad = np.array(points_grad);
+        return points_grad.tranpose();
+
+    def min_distance(self, point):
+        dist = self.distance(point);
+        return np.min(dist);
 
 
 class Sphere:
@@ -413,8 +421,14 @@ class Sphere:
 
         ax.add_patch(
             plt.Circle(center,
+                       radius=abs(self.radius),
+                       edgecolor='#9C9C9C',
+                       fill=False))
+
+        ax.add_patch(
+            plt.Circle(center,
                        radius=radius_influence,
-                       edgecolor='k',
+                       edgecolor='k', linestyle='--',
                        fill=False))
 
     def distance(self, points):
@@ -478,14 +492,17 @@ class Robot:
 
     @property
     def sphere(self):
-        center = np.array([[self.q[0]], [self.q[2]]]);
-        return Sphere(center, self.r);
+        center = np.array([[self.q[0][0]], [self.q[2][0]]]);
+        return Sphere(center, 0.5*self.r, 0.5*self.r);
 
     def plot(self):
         self.sphere.plot(color=self.color);
 
-    def move(self, u, dt=0.001):
+    def move(self, dt=0.001, u=None, walls=None, enemy=None):
         m = 1;
+
+        if u is None:
+            u = 2*np.random.rand(2,1) - 1;
 
         self.q = self.q + dt*np.array([
             [self.q[1][0]],
@@ -494,8 +511,6 @@ class Robot:
             [u[1][0]/m]
         ]);
 
-        return self.q;
-
     def impact(self, enemy):
         d = np.linalg.norm(
             self.position - enemy.position
@@ -503,23 +518,43 @@ class Robot:
         d -= (self.r + enemy.r);
         return d < 0;
 
-    def distance(self, shape, type):
-        pass;
+    def distance(self, points):
+        return self.sphere.distance(points);
+
+    def distance_grad(self, points):
+        return self.sphere.distance_grad(points);
 
 
 class RobotEnvironment:
     def __init__(self, walls, robots):
         if walls.is_filled():
-            walls.flip();
+            self.walls = walls.flip();
+        else:
+            self.walls = walls;
 
-        self.walls = walls;
         self.robots = robots;
 
+    def update(self, dt=0.001):
+
+        for robot in self.robots:
+            robot.move(dt=dt);
+
     def plot(self):
+
         self.walls.plot();
 
         for robot in self.robots:
             robot.plot();
 
-    def animate(self, x_robots, tspan):
-        pass;
+    def animate(self, Nt, dt=0.001):
+
+        for i in range(Nt):
+            t = i*dt;
+
+            plt.clf();
+
+            self.update(dt=dt);
+            self.plot();
+
+            plt.show(block=0);
+            plt.pause(dt);
