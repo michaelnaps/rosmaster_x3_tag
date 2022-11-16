@@ -1,5 +1,6 @@
 # primary testing file for algorithm development
 
+import numbers
 import numpy as np
 import matplotlib.pyplot as plt
 import Geometry as gm
@@ -37,4 +38,15 @@ if __name__ == "__main__":
     world, robots = init_environment();
 
     world.plot();
+    plt.grid(1);
     plt.show();
+
+    # x_ticks = np.linspace(-3, 3, 100);
+    # y_ticks = np.linspace(-2, 2, 100);
+    # grid_var = gm.Grid(x_ticks, y_ticks);
+
+    # threshold = 5;
+    # xrange = [-3, 3];
+    # yrange = [-2, 2];
+    # grid_var.plot_threshold(world.walls.min_distance, threshold, xrange, yrange)
+    # plt.show()

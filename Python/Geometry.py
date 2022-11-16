@@ -3,7 +3,8 @@ import math
 import numbers
 
 import numpy as np
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
+from matplotlib import cm
 from scipy.linalg import block_diag
 
 
@@ -99,6 +100,25 @@ def angle(vertex0, vertex1, vertex2, angle_type='unsigned'):
     return edge_angle
 
 
+def clip(val, threshold):
+    """
+    If val is a scalar, threshold its value; if it is a vector, normalized it
+    """
+    if isinstance(val, np.ndarray):
+        val_norm = np.linalg.norm(val)
+        if val_norm > threshold:
+            val = val * threshold / val_norm
+    elif isinstance(val, numbers.Number):
+        if val > threshold:
+            val = threshold
+        if np.isnan(val):
+            val = threshold
+    else:
+        raise ValueError('Numeric format not recognized')
+
+    return val
+
+
 class Grid:
     """
     A function to store the coordinates of points on a 2-D grid and evaluate
@@ -139,6 +159,54 @@ class Grid:
         """
 
         return np.meshgrid(self.xx_ticks, self.yy_ticks)
+
+    def plot_threshold(self, f_handle, threshold=10,
+    xrange=[-10,10], yrange=[-10,10]):
+        """
+        The function evaluates the function f_handle on points placed on the grid.
+        """
+        def f_handle_clip(val):
+            return clip(f_handle(val), threshold)
+
+        f_eval = self.eval(f_handle_clip)
+        # print(f_eval)
+
+        [xx_mesh, yy_mesh] = self.mesh()
+        f_dim = numel(f_handle_clip(np.zeros((2, 1))))
+        if f_dim == 1:
+            # scalar field
+            fig = plt.gcf()
+            axis = fig.add_subplot(111, projection='3d')
+
+            axis.plot_surface(xx_mesh,
+                              yy_mesh,
+                              f_eval.transpose(),
+                              cmap=cm.gnuplot2)
+            axis.set_zlim(0, threshold)
+        elif f_dim == 2:
+            # vector field
+            # grid.eval gives the result transposed with respect to
+            # what meshgrid expects
+            f_eval = f_eval.transpose((1, 0, 2))
+
+            # print(f_eval)
+            # vector field
+            plt.quiver(xx_mesh,
+                       yy_mesh,
+                       f_eval[:, :, 0],
+                       f_eval[:, :, 1],
+                       angles='xy',
+                       scale_units='xy')
+            axis = plt.gca()
+        else:
+            raise NotImplementedError(
+                'Field plotting for dimension greater than two not implemented'
+            )
+
+        axis.set_xlim(xrange[0], xrange[1])
+        axis.set_ylim(yrange[0], yrange[1])
+        plt.xlabel('x')
+        plt.ylabel('y')
 
 
 class Edge:
@@ -365,20 +433,34 @@ class Polygon:
 
         return np.array(dist);
 
-    def distance_grad(self, point):
-        points_grad = [];
-        points_dist = self.distance(point);
-        for i, point in enumerate(points):
-            if nb.abs(points_dist[i]) > 0:
-                points_grad.append((point - self.position.T) / points_dist[i]);
-            else:
-                points_grad.append([0, 0]);
-        points_grad = np.array(points_grad);
-        return points_grad.tranpose();
-
     def min_distance(self, point):
-        dist = self.distance(point);
+        dist = self.distance(point)[0];
         return np.min(dist);
+
+    def distance_grad(self, point, h=1e-3):
+        # distances from point
+        d = self.distance(point);
+
+        # 2-point central difference method
+        x_adj = np.array([[h],[0]]);
+        y_adj = np.array([[0],[h]]);
+
+        ptn1_x = point - x_adj;
+        ptp1_x = point + x_adj;
+        dn1_x = self.distance(ptn1_x)[0];
+        dp1_x = self.distance(ptp1_x)[0];
+
+        ptn1_y = point - y_adj;
+        ptp1_y = point + y_adj;
+        dn1_y = self.distance(ptn1_y)[0];
+        dp1_y = self.distance(ptp1_y)[0];
+
+        g = np.array([
+            (dp1_x - dn1_x),
+            (dp1_y - dn1_y)
+        ]) / (2*h*d);
+
+        return g;
 
 
 class Sphere:
