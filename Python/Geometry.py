@@ -462,6 +462,17 @@ class Polygon:
 
         return g;
 
+    def max_distance_grad(self, point, h=1e-3):
+        dist_grad = self.distance_grad(point, h=h);
+
+        i_max = 0;
+        for i, g in enumerate(dist_grad.T):
+            if np.linalg.norm(g) > np.linalg.norm(dist_grad.T[i_max]):
+                i_max = i;
+
+        return dist_grad[:,i_max];
+
+
 
 class Sphere:
     """ Class for plotting and computing distances to spheres (circles, in 2-D). """
