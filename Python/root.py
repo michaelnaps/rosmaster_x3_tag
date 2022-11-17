@@ -17,32 +17,38 @@ def init_environment():
     robot_radius = 0.30;  # safety radius
     b_c = np.array([[0],[0]]);
     sphere_temp = gm.Sphere(b_c, robot_radius);
-    bernard = gm.Robot(sphere_temp, 'pursuer', 'yellowgreen');
+    bernard = gm.Robot(sphere_temp, 'pursuer', 'yellowgreen', 'bernard');
 
     s_c = np.array([[0.5], [0.5]]);
     sphere_temp = gm.Sphere(s_c, robot_radius);
-    scrappy = gm.Robot(sphere_temp, 'evader', 'firebrick');
+    scrappy = gm.Robot(sphere_temp, 'evader', 'firebrick', 'scrappy');
 
     o_c = np.array([[0.5], [-0.5]]);
     sphere_temp = gm.Sphere(o_c, robot_radius);
-    oswaldo = gm.Robot(sphere_temp, 'evader', 'mediumpurple');
+    oswaldo = gm.Robot(sphere_temp, 'evader', 'mediumpurple', 'oswaldo');
 
     robots = (bernard, scrappy, oswaldo);
     world = gm.RobotEnvironment(walls, robots);
 
-    return world, robots[0];
+    return world, robots;
 
 
 if __name__ == "__main__":
 
     world, robots = init_environment();
 
-    # x_ticks = np.linspace(-3, 3, 100);
-    # y_ticks = np.linspace(-2, 2, 100);
-    # grid_var = gm.Grid(x_ticks, y_ticks);
+    point = np.array([[1], [0.25]]);
+    # print(world.walls.total_distance_grad(point));
 
-    # threshold = 5;
-    # xrange = [-3, 3];
-    # yrange = [-2, 2];
-    # grid_var.plot_threshold(world.walls.min_distance, threshold, xrange, yrange)
+    x_ticks = 2*np.linspace(-2, 2, 60);
+    y_ticks = 2*np.linspace(-1, 1, 60);
+    grid_var = gm.Grid(x_ticks, y_ticks);
+
+    threshold = 5;
+    xrange = [-4.5, 4.5];
+    yrange = [-1.5, 1.5];
+    # world.plot();
+    # grid_var.plot_threshold(world.distance_grad, threshold, xrange, yrange)
     # plt.show()
+
+    world.animate(1000, 0.01);

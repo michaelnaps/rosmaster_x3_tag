@@ -161,7 +161,7 @@ class Grid:
         return np.meshgrid(self.xx_ticks, self.yy_ticks)
 
     def plot_threshold(self, f_handle, threshold=10,
-    xrange=[-10,10], yrange=[-10,10]):
+        xrange=[-10,10], yrange=[-10,10]):
         """
         The function evaluates the function f_handle on points placed on the grid.
         """
@@ -295,20 +295,18 @@ class Polygon:
         """
         self.vertices = np.fliplr(self.vertices)
 
-    def plot(self, color='#9C9C9C', q_color='k'):
+    def plot(self, color='#9C9C9C', q_color='#9C9C9C'):
 
         # choose color based on rotation direction
         if self.is_filled():
-            inside = color
             outside = '#FCFCFC'
         else:
-            inside = '#FCFCFC'
             outside = color
 
-        plt.fill(
-            self.vertices[0], self.vertices[1],
-            color=inside
-        )
+        # plt.fill(
+        #     self.vertices[0], self.vertices[1],
+        #     color=inside
+        # )
 
         directions = np.diff(self.vertices_loop)
         plt.quiver(
@@ -462,16 +460,9 @@ class Polygon:
 
         return g;
 
-    def max_distance_grad(self, point, h=1e-3):
+    def total_distance_grad(self, point, h=1e-3):
         dist_grad = self.distance_grad(point, h=h);
-
-        i_max = 0;
-        for i, g in enumerate(dist_grad.T):
-            if np.linalg.norm(g) > np.linalg.norm(dist_grad.T[i_max]):
-                i_max = i;
-
-        return dist_grad[:,i_max];
-
+        return np.array([[np.sum(dist_grad[0])],[np.sum(dist_grad[1])]]);
 
 
 class Sphere:
@@ -532,7 +523,7 @@ class Sphere:
         for point in points.transpose():
             dist = np.linalg.norm(point - center)
             dist -= self.radius
-            # dist -= self.distance_influence
+            dist -= self.distance_influence
             points_dist.append(dist)
 
         return np.array(points_dist)
@@ -542,15 +533,18 @@ class Sphere:
         Computes the gradient of the signed distance between points and the
         sphere, consistently with the definition of Sphere.distance.
         """
+        TOL = 1e-12;
         center = np.array([self.center[0][0], self.center[1][0]])
 
         # grad d(x, x_c) = (x - x_c) / ||x - x_c||
         points_grad = []
         points_dist = self.distance(points)
         for i, point in enumerate(points.transpose()):
-            if np.abs(points_dist[i]) > 0:
+            if points_dist[i] > 0:
                 points_grad.append((point - center) / points_dist[i])
-            else:
+            elif points_dist[i] < 0:
+                points_grad.append([[np.nan], [np.nan]]);
+            elif np.abs(points_dist[i]) < TOL:
                 points_grad.append([0, 0])
         points_grad = np.array(points_grad)
         return points_grad.transpose()
@@ -561,7 +555,7 @@ class Sphere:
 
 
 class Robot:
-    def __init__(self, sphere, role, color):
+    def __init__(self, sphere, role, color, name):
         self.q = np.array([
             [sphere.center[0][0]],
             [0],
@@ -572,6 +566,7 @@ class Robot:
         self.r = sphere.radius;
         self.role = role;
         self.color = color;
+        self.name = name;
 
     @property
     def position(self):
@@ -591,7 +586,7 @@ class Robot:
     def plot(self):
         self.sphere.plot(color=self.color);
 
-    def move(self, dt=0.001, u=None, walls=None, enemy=None):
+    def move(self, dt=0.001, u=None):
         m = 1;
 
         if u is None:
@@ -627,24 +622,41 @@ class RobotEnvironment:
 
         self.robots = robots;
 
-    def update(self, dt=0.001):
+    def distance_grad(self, point, exclude_robot=None):
+        walls_grad = self.walls.total_distance_grad(point);
 
+        robot_grad = np.array([[0],[0]]);
         for robot in self.robots:
-            robot.move(dt=dt);
+            if not (exclude_robot==robot.name):
+                robot_grad = robot_grad + robot.distance_grad(point);
+
+        return robot_grad + 10*walls_grad;
+
+    def update(self, dt=0.001):
+        for robot in self.robots:
+            robot_grad = self.distance_grad(robot.position, robot.name)
+            robot.move(dt=dt, u=robot_grad);
 
     def plot(self):
-
         self.walls.plot();
 
         for robot in self.robots:
             robot.plot();
 
     def animate(self, Nt, dt=0.001):
+        # xrange = [-4.5, 4.5];
+        # yrange = [-2.5, 2.5];
+        # x_ticks = np.linspace(-4, 4, 40);
+        # y_ticks = np.linspace(-2, 2, 40);
+        # grid_var = Grid(x_ticks, y_ticks);
 
         for i in range(Nt):
             t = i*dt;
 
             plt.clf();
+
+            # grid_var.plot_threshold(self.distance_grad,
+            #     xrange=xrange, yrange=yrange);
 
             self.update(dt=dt);
             self.plot();
