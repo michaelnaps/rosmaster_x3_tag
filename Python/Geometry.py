@@ -4,7 +4,8 @@ import numbers
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm
+
+import cvxopt as cvx
 from scipy.linalg import block_diag
 
 
@@ -556,48 +557,24 @@ class Sphere:
 
 class Robot:
     def __init__(self, sphere, role, color, name):
-        self.q = np.array([
-            [sphere.center[0][0]],
-            [0],
-            [sphere.center[1][0]],
-            [0]
-        ]);
-
+        self.x = sphere.center;
         self.r = sphere.radius;
         self.role = role;
         self.color = color;
         self.name = name;
 
     @property
-    def position(self):
-        x = np.array([[self.q[0][0]], [self.q[2][0]]]);
-        return x;
-
-    @property
-    def velocity(self):
-        v = np.array([[self.q[1][0]], [self.q[3][0]]]);
-        return v;
-
-    @property
     def sphere(self):
-        center = np.array([[self.q[0][0]], [self.q[2][0]]]);
-        return Sphere(center, 0.5*self.r, 0.5*self.r);
+        return Sphere(self.x, 0.5*self.r, 0.5*self.r);
 
     def plot(self):
         self.sphere.plot(color=self.color);
 
     def move(self, dt=0.001, u=None):
         m = 1;
-
         if u is None:
-            u = 2*np.random.rand(2,1) - 1;
-
-        self.q = self.q + dt*np.array([
-            [self.q[1][0]],
-            [u[0][0]/m],
-            [self.q[3][0]],
-            [u[1][0]/m]
-        ]);
+            u = np.array([[0],[0]]);
+        self.x = self.x + dt*u
 
     def impact(self, enemy):
         d = np.linalg.norm(
@@ -611,6 +588,29 @@ class Robot:
 
     def distance_grad(self, points):
         return self.sphere.distance_grad(points);
+
+    def control(self, dt, robots, walls):
+        q = walls.distance(self.x);
+        P = walls.distance_grad(self.x);
+
+        if self.role == 'evader':
+            for robot in robots:
+                if not robot.name == self.name:
+                    q = np.concatenate((q, [robot.distance(self.x)]), axis=1);
+                    P = np.concatenate((P, robot.distance_grad(self.x)), axis=1);
+            u_ref = np.array([[0],[0]]);
+
+        elif self.role == 'pursuer':
+            d_min = np.nan;
+            for i, robot in enumerate(robots):
+                if not robot.name == self.name:
+                    d_current = robot.distance(self.x);
+                    if np.isnan(d_min) or d_current < d_min:
+                        i_min = i;
+            u_ref = robots[i_min].distance_grad(self.x);
+
+        u = qp_supervisor(-P.T, -q.T, -u_ref, solver='cvxopt')
+        self.move(dt=dt, u=u);
 
 
 class RobotEnvironment:
@@ -630,12 +630,15 @@ class RobotEnvironment:
             if not (exclude_robot==robot.name):
                 robot_grad = robot_grad + robot.distance_grad(point);
 
-        return robot_grad + 10*walls_grad;
+        return robot_grad + walls_grad;
 
     def update(self, dt=0.001):
         for robot in self.robots:
-            robot_grad = self.distance_grad(robot.position, robot.name)
-            robot.move(dt=dt, u=robot_grad);
+            if robot.role == 'pursuer':
+                robot.control(dt, self.robots, self.walls);
+            else:
+                u = self.distance_grad(robot.x, robot.name);
+                robot.move(dt=dt, u=u)
 
     def plot(self):
         self.walls.plot();
@@ -644,22 +647,34 @@ class RobotEnvironment:
             robot.plot();
 
     def animate(self, Nt, dt=0.001):
-        # xrange = [-4.5, 4.5];
-        # yrange = [-2.5, 2.5];
-        # x_ticks = np.linspace(-4, 4, 40);
-        # y_ticks = np.linspace(-2, 2, 40);
-        # grid_var = Grid(x_ticks, y_ticks);
-
         for i in range(Nt):
             t = i*dt;
 
             plt.clf();
 
-            # grid_var.plot_threshold(self.distance_grad,
-            #     xrange=xrange, yrange=yrange);
-
             self.update(dt=dt);
             self.plot();
 
+            plt.title('t = ' + str(t) + '[s]')
             plt.show(block=0);
             plt.pause(dt);
+
+
+def qp_supervisor(a_barrier, b_barrier, u_ref=None, solver='cvxopt'):
+    cvx.solvers.options['show_progress'] = False
+
+    dim = 2
+    if u_ref is None:
+        u_ref = np.zeros((dim, 1))
+    p_qp = cvx.matrix(np.eye(2))
+    q_qp = cvx.matrix(-u_ref)
+    if a_barrier is None:
+        g_qp = None
+    else:
+        g_qp = cvx.matrix(np.double(a_barrier))
+    if b_barrier is None:
+        h_qp = None
+    else:
+        h_qp = -cvx.matrix(np.double(b_barrier))
+    solution = cvx.solvers.qp(p_qp, q_qp, G=g_qp, h=h_qp, solver=solver)
+    return np.array(solution['x'])
