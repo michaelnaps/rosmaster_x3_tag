@@ -39,16 +39,17 @@ if __name__ == "__main__":
 
     point = np.array([[1], [0.25]]);
     # print(world.walls.total_distance_grad(point));
-
-    x_ticks = 2*np.linspace(-2, 2, 60);
-    y_ticks = 2*np.linspace(-1, 1, 60);
-    grid_var = gm.Grid(x_ticks, y_ticks);
-
+    #
+    # x_ticks = 2*np.linspace(-2, 2, 60);
+    # y_ticks = 2*np.linspace(-1, 1, 60);
+    # grid_var = gm.Grid(x_ticks, y_ticks);
+    #
     # threshold = 5;
     # xrange = [-4.5, 4.5];
     # yrange = [-1.5, 1.5];
     # world.plot();
     # grid_var.plot_threshold(world.distance_grad, threshold, xrange, yrange)
     # plt.show()
-
+    #
+    # world.update(dt=0.01);
     world.animate(1000, 0.01);

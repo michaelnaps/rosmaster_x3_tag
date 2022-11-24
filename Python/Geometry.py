@@ -598,7 +598,7 @@ class Robot:
                 if not robot.name == self.name:
                     q = np.concatenate((q, [robot.distance(self.x)]), axis=1);
                     P = np.concatenate((P, robot.distance_grad(self.x)), axis=1);
-            u_ref = np.array([[0],[0]]);
+            u_ref = np.array([[0.],[0.]]);
 
         elif self.role == 'pursuer':
             d_min = np.nan;
@@ -609,7 +609,7 @@ class Robot:
                         i_min = i;
             u_ref = robots[i_min].distance_grad(self.x);
 
-        u = qp_supervisor(-P.T, -q.T, -u_ref, solver='cvxopt')
+        u = qp_supervisor(-P.T, -q.T, u_ref=u_ref);
         self.move(dt=dt, u=u);
 
 
@@ -627,18 +627,14 @@ class RobotEnvironment:
 
         robot_grad = np.array([[0],[0]]);
         for robot in self.robots:
-            if not (exclude_robot==robot.name):
+            if not exclude_robot == robot.name:
                 robot_grad = robot_grad + robot.distance_grad(point);
 
         return robot_grad + walls_grad;
 
     def update(self, dt=0.001):
         for robot in self.robots:
-            if robot.role == 'pursuer':
-                robot.control(dt, self.robots, self.walls);
-            else:
-                u = self.distance_grad(robot.x, robot.name);
-                robot.move(dt=dt, u=u)
+            robot.control(dt, self.robots, self.walls);
 
     def plot(self):
         self.walls.plot();
@@ -667,7 +663,7 @@ def qp_supervisor(a_barrier, b_barrier, u_ref=None, solver='cvxopt'):
     if u_ref is None:
         u_ref = np.zeros((dim, 1))
     p_qp = cvx.matrix(np.eye(2))
-    q_qp = cvx.matrix(-u_ref)
+    q_qp = cvx.matrix(u_ref)
     if a_barrier is None:
         g_qp = None
     else:
@@ -676,5 +672,6 @@ def qp_supervisor(a_barrier, b_barrier, u_ref=None, solver='cvxopt'):
         h_qp = None
     else:
         h_qp = -cvx.matrix(np.double(b_barrier))
+
     solution = cvx.solvers.qp(p_qp, q_qp, G=g_qp, h=h_qp, solver=solver)
     return np.array(solution['x'])
