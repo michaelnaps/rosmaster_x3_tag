@@ -524,7 +524,7 @@ class Sphere:
         for point in points.transpose():
             dist = np.linalg.norm(point - center)
             dist -= self.radius
-            dist -= self.distance_influence
+            # dist -= self.distance_influence
             points_dist.append(dist)
 
         return np.array(points_dist)
@@ -540,15 +540,14 @@ class Sphere:
         # grad d(x, x_c) = (x - x_c) / ||x - x_c||
         points_grad = []
         points_dist = self.distance(points)
-        for i, point in enumerate(points.transpose()):
-            if points_dist[i] > 0:
+        for i, point in enumerate(points.T):
+            if np.abs(points_dist[i]) > TOL:
                 points_grad.append((point - center) / points_dist[i])
-            elif points_dist[i] < 0:
-                points_grad.append([[np.nan], [np.nan]]);
-            elif np.abs(points_dist[i]) < TOL:
-                points_grad.append([0, 0])
+            else:
+                points_grad.append([[0],[0]])
         points_grad = np.array(points_grad)
-        return points_grad.transpose()
+
+        return points_grad.T
 
     def is_collision(self, points):
         points_dist = self.distance(points)
@@ -559,13 +558,14 @@ class Robot:
     def __init__(self, sphere, role, color, name):
         self.x = sphere.center;
         self.r = sphere.radius;
+        self.tag_r = sphere.distance_influence;
         self.role = role;
         self.color = color;
         self.name = name;
 
     @property
     def sphere(self):
-        return Sphere(self.x, 0.5*self.r, 0.5*self.r);
+        return Sphere(self.x, self.r, self.tag_r);
 
     def plot(self):
         self.sphere.plot(color=self.color);
@@ -575,13 +575,6 @@ class Robot:
         if u is None:
             u = np.array([[0],[0]]);
         self.x = self.x + dt*u
-
-    def impact(self, enemy):
-        d = np.linalg.norm(
-            self.position - enemy.position
-        );
-        d -= (self.r + enemy.r);
-        return d < 0;
 
     def distance(self, points):
         return self.sphere.distance(points);
@@ -596,9 +589,11 @@ class Robot:
         if self.role == 'evader':
             for robot in robots:
                 if not robot.name == self.name:
-                    q = np.concatenate((q, [robot.distance(self.x)]), axis=1);
-                    P = np.concatenate((P, robot.distance_grad(self.x)), axis=1);
-            u_ref = np.array([[0.],[0.]]);
+                    if robot.role == 'evader':
+                        q = np.concatenate((q, [robot.distance(self.x)]), axis=1);
+                        P = np.concatenate((P, robot.distance_grad(self.x)), axis=1);
+                    elif robot.role == 'pursuer':
+                        u_ref = -robot.distance_grad(self.x);
 
         elif self.role == 'pursuer':
             d_min = np.nan;
@@ -612,6 +607,14 @@ class Robot:
         u = qp_supervisor(-P.T, -q.T, u_ref=u_ref);
         self.move(dt=dt, u=u);
 
+    def impact(self, evader):
+        dist = self.distance(evader.x);
+        dist -= evader.r;
+        dist -= evader.tag_r;
+        if dist < self.tag_r:
+            return True;
+        return False;
+
 
 class RobotEnvironment:
     def __init__(self, walls, robots):
@@ -621,6 +624,7 @@ class RobotEnvironment:
             self.walls = walls;
 
         self.robots = robots;
+        self.pause = 0;
 
     def distance_grad(self, point, exclude_robot=None):
         walls_grad = self.walls.total_distance_grad(point);
@@ -633,8 +637,31 @@ class RobotEnvironment:
         return robot_grad + walls_grad;
 
     def update(self, dt=0.001):
+        TOL = 1E-6;
         for robot in self.robots:
-            robot.control(dt, self.robots, self.walls);
+            if robot.role == 'pursuer':
+                # print(robot.name)
+                # print(self.pause)
+                if self.pause > 0:
+                    self.pause -= dt;
+                elif np.abs(self.pause) < TOL:
+                    self.pause = -1;
+                else:
+                    robot.control(dt, self.robots, self.walls);
+                    if self.tagged(robot):
+                        break;
+            elif robot.role == 'evader':
+                robot.control(dt, self.robots, self.walls);
+
+    def tagged(self, pursuer):
+        for evader in self.robots:
+            if not evader.name == pursuer.name:
+                if pursuer.impact(evader):
+                    pursuer.role = 'evader';
+                    evader.role = 'pursuer';
+                    self.pause = 1;
+                    return True;
+        return False;
 
     def plot(self):
         self.walls.plot();
