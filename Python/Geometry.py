@@ -546,10 +546,12 @@ class Sphere:
         points_grad = []
         points_dist = self.distance(points)
         for i, point in enumerate(points.T):
-            if np.abs(points_dist[i]) > TOL:
-                points_grad.append((point - center) / points_dist[i])
-            else:
+            if np.abs(points_dist[i]) < TOL:
                 points_grad.append([[0],[0]])
+            elif points_dist[i] > 0:
+                points_grad.append((point - center) / points_dist[i])
+            elif points_dist[i] < 0:
+                points_grad.append(np.array([[np.nan],[np.nan]]))
         points_grad = np.array(points_grad)
 
         return points_grad.T
@@ -638,7 +640,7 @@ class RobotEnvironment:
         self.pause = 0;
 
     def distance_grad(self, point, exclude_robot=None):
-        walls_grad = self.walls.total_distance_grad(point);
+        walls_grad = self.walls.distance_grad(point);
 
         robot_grad = np.array([[0],[0]]);
         for robot in self.robots:
