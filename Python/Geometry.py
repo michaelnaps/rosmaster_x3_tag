@@ -520,9 +520,14 @@ class Sphere:
         center = np.array([self.center[0][0], self.center[1][0]])
         points_dist = [];
 
+        if self.radius > 0:
+            adj = 1;
+        else:
+            adj = -1;
+
         # d(x, x_c) = 1/2 * ||x - x_c||^2
         for point in points.transpose():
-            dist = np.linalg.norm(point - center)
+            dist = adj*np.linalg.norm(point - center)
             dist -= self.radius
             # dist -= self.distance_influence
             points_dist.append(dist)
@@ -552,6 +557,12 @@ class Sphere:
     def is_collision(self, points):
         points_dist = self.distance(points)
         return [distance < 0 for distance in points_dist]
+
+    def is_filled(self):
+        return self.radius > 0;
+
+    def flip(self):
+        self.radius *= -1;
 
 
 class Robot:

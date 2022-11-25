@@ -13,6 +13,9 @@ def init_environment():
         [1, 1, -1, -1]
     ]);
     walls = gm.Polygon(bounds);
+    # center = np.array([[0],[0]]);
+    # radius = 2;
+    # walls = gm.Sphere(center, radius);
 
     robot_radius = 0.15;  # safety radius
     tag_radius = 0.15;
@@ -21,11 +24,11 @@ def init_environment():
     sphere_temp = gm.Sphere(b_c, robot_radius, tag_radius);
     bernard = gm.Robot(sphere_temp, 'pursuer', 'yellowgreen', 'bernard');
 
-    s_c = np.array([[-0.5], [0.5]]);
+    s_c = np.array([[-1.5], [1.5]]);
     sphere_temp = gm.Sphere(s_c, robot_radius, tag_radius);
     scrappy = gm.Robot(sphere_temp, 'evader', 'firebrick', 'scrappy');
 
-    o_c = np.array([[0.5], [-0.5]]);
+    o_c = np.array([[1.5], [-1.5]]);
     sphere_temp = gm.Sphere(o_c, robot_radius, tag_radius);
     oswaldo = gm.Robot(sphere_temp, 'evader', 'mediumpurple', 'oswaldo');
 
