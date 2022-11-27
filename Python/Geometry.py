@@ -170,7 +170,6 @@ class Grid:
             return clip(f_handle(val), threshold)
 
         f_eval = self.eval(f_handle_clip)
-        # print(f_eval)
 
         [xx_mesh, yy_mesh] = self.mesh()
         f_dim = numel(f_handle_clip(np.zeros((2, 1))))
@@ -190,7 +189,6 @@ class Grid:
             # what meshgrid expects
             f_eval = f_eval.transpose((1, 0, 2))
 
-            # print(f_eval)
             # vector field
             plt.quiver(xx_mesh,
                        yy_mesh,
@@ -416,9 +414,6 @@ class Polygon:
             for i_vx, vertex in enumerate(self.vertices.transpose()):
                 next_vertex = self.vertices_loop[:,i_vx+1];
 
-                # print("v  =", vertex);
-                # print("vn =", next_vertex);
-
                 l_i = np.linalg.norm(point - vertex);
                 l_j = np.linalg.norm(point - next_vertex);
                 w_ij = np.linalg.norm(vertex.T - next_vertex);
@@ -595,6 +590,15 @@ class Robot:
     def distance_grad(self, points):
         return self.sphere.distance_grad(points);
 
+
+    def impact(self, evader):
+        dist = self.distance(evader.x);
+        dist -= evader.r;
+        dist -= evader.tag_r;
+        if dist < self.tag_r:
+            return True;
+        return False;
+
     def control(self, dt, robots, walls):
         q = walls.distance(self.x);
         P = walls.distance_grad(self.x);
@@ -603,8 +607,8 @@ class Robot:
             for robot in robots:
                 if not robot.name == self.name:
                     if robot.role == 'evader':
-                        q = np.concatenate((q, [robot.distance(self.x)]), axis=1);
-                        P = np.concatenate((P, robot.distance_grad(self.x)), axis=1);
+                        q = np.hstack( (q, robot.distance(self.x)) );
+                        P = np.hstack( (P, robot.distance_grad(self.x)) );
                     elif robot.role == 'pursuer':
                         u_ref = -robot.distance_grad(self.x);
 
@@ -620,14 +624,6 @@ class Robot:
         u = qp_supervisor(-P.T, -q.T, u_ref=u_ref);
         self.move(dt=dt, u=u);
 
-    def impact(self, evader):
-        dist = self.distance(evader.x);
-        dist -= evader.r;
-        dist -= evader.tag_r;
-        if dist < self.tag_r:
-            return True;
-        return False;
-
 
 class RobotEnvironment:
     def __init__(self, walls, robots):
@@ -640,7 +636,7 @@ class RobotEnvironment:
         self.pause = 0;
 
     def distance_grad(self, point, exclude_robot=None):
-        walls_grad = self.walls.distance_grad(point);
+        walls_grad = self.walls.total_distance_grad(point);
 
         robot_grad = np.array([[0],[0]]);
         for robot in self.robots:
@@ -653,8 +649,6 @@ class RobotEnvironment:
         TOL = 1E-6;
         for robot in self.robots:
             if robot.role == 'pursuer':
-                # print(robot.name)
-                # print(self.pause)
                 if self.pause > 0:
                     self.pause -= dt;
                 elif np.abs(self.pause) < TOL:

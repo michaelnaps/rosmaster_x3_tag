@@ -8,14 +8,14 @@ import Geometry as gm
 
 def init_environment():
 
-    # bounds = 2*np.array([
-    #     [-2, 2, 2, -2],
-    #     [1, 1, -1, -1]
-    # ]);
-    # walls = gm.Polygon(bounds);
-    center = np.array([[0],[0]]);
-    radius = -4;
-    walls = gm.Sphere(center, radius);
+    bounds = 2*np.array([
+        [-2, 2, 2, -2],
+        [1, 1, -1, -1]
+    ]);
+    walls = gm.Polygon(bounds);
+    # center = np.array([[0],[0]]);
+    # radius = -4;
+    # walls = gm.Sphere(center, radius);
 
     robot_radius = 0.15;  # safety radius
     tag_radius = 0.15;
@@ -56,6 +56,6 @@ if __name__ == "__main__":
     grid_var.plot_threshold(world.distance_grad, threshold, xrange, yrange)
     world.plot();
     plt.show()
-    
+
     # world.update(dt=0.01);
-    # world.animate(1000, 0.01);
+    world.animate(1000, 0.025);
