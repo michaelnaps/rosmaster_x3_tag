@@ -170,6 +170,7 @@ class Grid:
             return clip(f_handle(val), threshold)
 
         f_eval = self.eval(f_handle_clip)
+        # print(f_eval)
 
         [xx_mesh, yy_mesh] = self.mesh()
         f_dim = numel(f_handle_clip(np.zeros((2, 1))))
@@ -189,6 +190,7 @@ class Grid:
             # what meshgrid expects
             f_eval = f_eval.transpose((1, 0, 2))
 
+            # print(f_eval)
             # vector field
             plt.quiver(xx_mesh,
                        yy_mesh,
@@ -414,6 +416,9 @@ class Polygon:
             for i_vx, vertex in enumerate(self.vertices.transpose()):
                 next_vertex = self.vertices_loop[:,i_vx+1];
 
+                # print("v  =", vertex);
+                # print("vn =", next_vertex);
+
                 l_i = np.linalg.norm(point - vertex);
                 l_j = np.linalg.norm(point - next_vertex);
                 w_ij = np.linalg.norm(vertex.T - next_vertex);
@@ -515,14 +520,9 @@ class Sphere:
         center = np.array([self.center[0][0], self.center[1][0]])
         points_dist = [];
 
-        if self.radius > 0:
-            adj = 1;
-        else:
-            adj = -1;
-
         # d(x, x_c) = 1/2 * ||x - x_c||^2
         for point in points.transpose():
-            dist = adj*np.linalg.norm(point - center)
+            dist = np.linalg.norm(point - center)
             dist -= self.radius
             # dist -= self.distance_influence
             points_dist.append(dist)
@@ -541,12 +541,10 @@ class Sphere:
         points_grad = []
         points_dist = self.distance(points)
         for i, point in enumerate(points.T):
-            if np.abs(points_dist[i]) < TOL:
-                points_grad.append([[0],[0]])
-            elif points_dist[i] > 0:
+            if np.abs(points_dist[i]) > TOL:
                 points_grad.append((point - center) / points_dist[i])
-            elif points_dist[i] < 0:
-                points_grad.append(np.array([[np.nan],[np.nan]]))
+            else:
+                points_grad.append([[0],[0]])
         points_grad = np.array(points_grad)
 
         return points_grad.T
@@ -554,12 +552,6 @@ class Sphere:
     def is_collision(self, points):
         points_dist = self.distance(points)
         return [distance < 0 for distance in points_dist]
-
-    def is_filled(self):
-        return self.radius > 0;
-
-    def flip(self):
-        self.radius *= -1;
 
 
 class Robot:
@@ -590,15 +582,6 @@ class Robot:
     def distance_grad(self, points):
         return self.sphere.distance_grad(points);
 
-
-    def impact(self, evader):
-        dist = self.distance(evader.x);
-        dist -= evader.r;
-        dist -= evader.tag_r;
-        if dist < self.tag_r:
-            return True;
-        return False;
-
     def control(self, dt, robots, walls):
         q = walls.distance(self.x);
         P = walls.distance_grad(self.x);
@@ -607,8 +590,8 @@ class Robot:
             for robot in robots:
                 if not robot.name == self.name:
                     if robot.role == 'evader':
-                        q = np.hstack( (q, robot.distance(self.x)) );
-                        P = np.hstack( (P, robot.distance_grad(self.x)) );
+                        q = np.concatenate((q, [robot.distance(self.x)]), axis=1);
+                        P = np.concatenate((P, robot.distance_grad(self.x)), axis=1);
                     elif robot.role == 'pursuer':
                         u_ref = -robot.distance_grad(self.x);
 
@@ -623,6 +606,14 @@ class Robot:
 
         u = qp_supervisor(-P.T, -q.T, u_ref=u_ref);
         self.move(dt=dt, u=u);
+
+    def impact(self, evader):
+        dist = self.distance(evader.x);
+        dist -= evader.r;
+        dist -= evader.tag_r;
+        if dist < self.tag_r:
+            return True;
+        return False;
 
 
 class RobotEnvironment:
@@ -649,6 +640,8 @@ class RobotEnvironment:
         TOL = 1E-6;
         for robot in self.robots:
             if robot.role == 'pursuer':
+                # print(robot.name)
+                # print(self.pause)
                 if self.pause > 0:
                     self.pause -= dt;
                 elif np.abs(self.pause) < TOL:
