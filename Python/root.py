@@ -6,13 +6,21 @@ import matplotlib.pyplot as plt
 import Geometry as gm
 
 
-def init_environment():
+def init_environment(wall_type):
 
-    bounds = 2*np.array([
-        [-2, 2, 2, -2],
-        [1, 1, -1, -1]
-    ]);
-    walls = gm.Polygon(bounds);
+    if wall_type == 'polygon':
+        bounds = np.array([
+            [-3, 3, 3, -3],
+            [3, 3, -3, -3]
+        ]);
+        walls = gm.Polygon(bounds);
+        wall_gain = 1;
+
+    elif wall_type =='sphere':
+        env_center = np.array([[0.],[0.]]);
+        env_radius = -3;
+        walls = gm.Sphere(env_center, env_radius);
+        wall_gain = 0.3;
 
     robot_radius = 0.15;  # safety radius
     tag_radius = 0.15;
@@ -21,37 +29,48 @@ def init_environment():
     sphere_temp = gm.Sphere(b_c, robot_radius, tag_radius);
     bernard = gm.Robot(sphere_temp, 'pursuer', 'yellowgreen', 'bernard');
 
-    s_c = np.array([[-0.5], [0.5]]);
+    s_c = np.array([[-1.5], [0.25]]);
     sphere_temp = gm.Sphere(s_c, robot_radius, tag_radius);
     scrappy = gm.Robot(sphere_temp, 'evader', 'firebrick', 'scrappy');
 
-    o_c = np.array([[0.5], [-0.5]]);
+    o_c = np.array([[1.5], [-0.75]]);
     sphere_temp = gm.Sphere(o_c, robot_radius, tag_radius);
     oswaldo = gm.Robot(sphere_temp, 'evader', 'mediumpurple', 'oswaldo');
 
     robots = (bernard, scrappy, oswaldo);
-    world = gm.RobotEnvironment(walls, robots);
+    world = gm.RobotEnvironment(walls, robots, wall_gain);
 
     return world, robots;
 
 
 if __name__ == "__main__":
 
-    world, robots = init_environment();
+    polyworld, robots = init_environment('polygon');
 
-    point = np.array([[1], [0.25]]);
-    # print(world.walls.total_distance_grad(point));
-    #
-    # x_ticks = 2*np.linspace(-2, 2, 60);
-    # y_ticks = 2*np.linspace(-1, 1, 60);
-    # grid_var = gm.Grid(x_ticks, y_ticks);
-    #
-    # threshold = 5;
-    # xrange = [-4.5, 4.5];
-    # yrange = [-1.5, 1.5];
-    # world.plot();
-    # grid_var.plot_threshold(world.distance_grad, threshold, xrange, yrange)
-    # plt.show()
-    #
-    # world.update(dt=0.01);
-    world.animate(1000, 0.025);
+    sphereworld, _    = init_environment('sphere');
+
+    point = np.array([[1.5], [1.5]]);
+    print(polyworld.distance_grad(point));
+    print(sphereworld.distance_grad(point));
+
+    x_ticks = np.linspace(-3, 3, 60);
+    y_ticks = np.linspace(-3, 3, 60);
+    grid_var = gm.Grid(x_ticks, y_ticks);
+
+    threshold = 10;
+    xrange = [-3.25, 3.25];
+    yrange = xrange;
+
+    ans = input("See threshold plots? [y/n] ");
+    if ans == 'y':
+        polyworld.plot();
+        grid_var.plot_threshold(polyworld.distance_grad, threshold, xrange, yrange);
+        plt.show();
+
+        sphereworld.plot();
+        grid_var.plot_threshold(sphereworld.distance_grad, threshold, xrange, yrange);
+        plt.show();
+
+    ans = input("See animation? [y/n] ");
+    if ans == 'y':
+        sphereworld.animate(1000, 0.01);

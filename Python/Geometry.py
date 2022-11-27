@@ -476,11 +476,13 @@ class Sphere:
         self.radius = radius
         self.distance_influence = distance_influence
 
-    def plot(self, color='#9C9C9C'):
+    def plot(self, color='#9C9C9C', dinf_color='k'):
         """
         This function draws the sphere (i.e., a circle) of the given radius, and the specified color,
         and then draws another circle in gray with radius equal to the distance of influence.
         """
+        TOL = 1e-6;
+
         # Get current axes
         ax = plt.gca()
 
@@ -488,7 +490,7 @@ class Sphere:
         plt.axis('equal')
 
         # Add circle as a patch
-        if self.radius > 0:
+        if self.is_filled():
             # Circle is filled in
             kwargs = {'facecolor': color}
             radius_influence = self.radius + self.distance_influence
@@ -509,20 +511,31 @@ class Sphere:
                        radius=abs(self.radius),
                        edgecolor='#9C9C9C',
                        fill=False))
+        if not self.distance_influence < TOL:
+            ax.add_patch(
+                plt.Circle(center,
+                           radius=radius_influence,
+                           edgecolor=dinf_color, linestyle='--',
+                           fill=False))
 
-        ax.add_patch(
-            plt.Circle(center,
-                       radius=radius_influence,
-                       edgecolor='k', linestyle='--',
-                       fill=False))
+    def is_filled(self):
+        return self.radius > 0;
+
+    def flip(self):
+        self.radius *= -1;
 
     def distance(self, points):
         center = np.array([self.center[0][0], self.center[1][0]])
         points_dist = [];
 
+        if self.radius > 0:
+            neg = 1;
+        else:
+            neg = -1;
+
         # d(x, x_c) = 1/2 * ||x - x_c||^2
         for point in points.transpose():
-            dist = np.linalg.norm(point - center)
+            dist = neg*np.linalg.norm(point - center)
             dist -= self.radius
             # dist -= self.distance_influence
             points_dist.append(dist)
@@ -534,20 +547,33 @@ class Sphere:
         Computes the gradient of the signed distance between points and the
         sphere, consistently with the definition of Sphere.distance.
         """
-        TOL = 1e-12;
+        TOL = 1e-6;
         center = np.array([self.center[0][0], self.center[1][0]])
 
         # grad d(x, x_c) = (x - x_c) / ||x - x_c||
         points_grad = []
         points_dist = self.distance(points)
         for i, point in enumerate(points.T):
-            if np.abs(points_dist[i]) > TOL:
+            if np.abs(points_dist[i]) < TOL:
+                points_grad.append([[0.],[0.]])
+
+            elif points_dist[i] > 0:
                 points_grad.append((point - center) / points_dist[i])
-            else:
-                points_grad.append([[0],[0]])
+
+            elif (points_dist[i] - self.distance_influence) < 0:
+                points_grad.append([[np.nan],[np.nan]]);
+
         points_grad = np.array(points_grad)
 
-        return points_grad.T
+        if self.is_filled():
+            neg = 1;
+        else:
+            neg = -1;
+
+        return neg*points_grad.T
+
+    def total_distance_grad(self, points):
+        return self.distance_grad(points);
 
     def is_collision(self, points):
         points_dist = self.distance(points)
@@ -567,8 +593,8 @@ class Robot:
     def sphere(self):
         return Sphere(self.x, self.r, self.tag_r);
 
-    def plot(self):
-        self.sphere.plot(color=self.color);
+    def plot(self, dinf_color='k'):
+        self.sphere.plot(color=self.color, dinf_color=dinf_color);
 
     def move(self, dt=0.001, u=None):
         m = 1;
@@ -582,9 +608,12 @@ class Robot:
     def distance_grad(self, points):
         return self.sphere.distance_grad(points);
 
-    def control(self, dt, robots, walls):
-        q = walls.distance(self.x);
-        P = walls.distance_grad(self.x);
+    def control(self, dt, robots, walls, wall_gain=1):
+        q = wall_gain*walls.distance(self.x);
+        P = wall_gain*walls.distance_grad(self.x);
+
+        if q.ndim == 1:
+            q.shape = (q.shape[0], 1);
 
         if self.role == 'evader':
             for robot in robots:
@@ -617,13 +646,14 @@ class Robot:
 
 
 class RobotEnvironment:
-    def __init__(self, walls, robots):
+    def __init__(self, walls, robots, wall_gain):
         if walls.is_filled():
             self.walls = walls.flip();
         else:
             self.walls = walls;
 
         self.robots = robots;
+        self.wall_gain = wall_gain;
         self.pause = 0;
 
     def distance_grad(self, point, exclude_robot=None):
@@ -645,13 +675,14 @@ class RobotEnvironment:
                 if self.pause > 0:
                     self.pause -= dt;
                 elif np.abs(self.pause) < TOL:
-                    self.pause = -1;
-                else:
-                    robot.control(dt, self.robots, self.walls);
+                    self.pause = 0;
+
+                if self.pause == 0:
+                    robot.control(dt, self.robots, self.walls, self.wall_gain);
                     if self.tagged(robot):
                         break;
             elif robot.role == 'evader':
-                robot.control(dt, self.robots, self.walls);
+                robot.control(dt, self.robots, self.walls, self.wall_gain);
 
     def tagged(self, pursuer):
         for evader in self.robots:
@@ -664,10 +695,16 @@ class RobotEnvironment:
         return False;
 
     def plot(self):
-        self.walls.plot();
+        self.walls.plot(color='k');
 
         for robot in self.robots:
-            robot.plot();
+            if robot.role == 'evader':
+                dinf_color = 'g';
+            elif self.pause > 0:
+                dinf_color = 'y';
+            elif robot.role == 'pursuer':
+                dinf_color = 'r';
+            robot.plot(dinf_color=dinf_color);
 
     def animate(self, Nt, dt=0.001):
         for i in range(Nt):
@@ -678,7 +715,7 @@ class RobotEnvironment:
             self.update(dt=dt);
             self.plot();
 
-            plt.title('t = ' + str(t) + '[s]')
+            plt.title('t = %.3f[s]' % t)
             plt.show(block=0);
             plt.pause(dt);
 
