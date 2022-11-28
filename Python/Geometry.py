@@ -537,7 +537,7 @@ class Sphere:
         for point in points.transpose():
             dist = neg*np.linalg.norm(point - center)
             dist -= self.radius
-            # dist -= self.distance_influence
+            dist -= neg*self.distance_influence
             points_dist.append(dist)
 
         return np.array(points_dist)
@@ -551,17 +551,17 @@ class Sphere:
         center = np.array([self.center[0][0], self.center[1][0]])
 
         # grad d(x, x_c) = (x - x_c) / ||x - x_c||
-        points_grad = []
         points_dist = self.distance(points)
+        points_grad = []
         for i, point in enumerate(points.T):
-            if np.abs(points_dist[i]) < TOL:
-                points_grad.append([[0.],[0.]])
-
-            elif points_dist[i] > self.distance_influence:
+            if points_dist[i] > TOL:
                 points_grad.append((point - center) / points_dist[i])
 
-            elif points_dist[i] < self.distance_influence:
-                points_grad.append([[np.nan],[np.nan]]);
+            elif points_dist[i] < -TOL:
+                points_grad.append([np.nan, np.nan]);
+
+            else:
+                points_grad.append([0., 0.]);
 
         points_grad = np.array(points_grad)
 
@@ -619,18 +619,28 @@ class Robot:
             for robot in robots:
                 if not robot.name == self.name:
                     if robot.role == 'evader':
-                        q = np.concatenate((q, [robot.distance(self.x)]), axis=1);
-                        P = np.concatenate((P, robot.distance_grad(self.x)), axis=1);
+                        robot_dist = robot.distance(self.x);
+                        robot_grad = robot.distance_grad(self.x);
+
+                        if robot_dist.ndim == 1:
+                            robot_dist.shape = (1,1);
+
+                        q = np.concatenate((q, robot_dist), axis=1);
+                        P = np.concatenate((P, robot_grad), axis=1);
+
                     elif robot.role == 'pursuer':
                         u_ref = -pgain*robot.distance_grad(self.x);
 
         elif self.role == 'pursuer':
-            d_min = np.nan;
+            i_min = -1;
+            d_min = np.inf;
+
             for i, robot in enumerate(robots):
                 if not robot.name == self.name:
-                    d_current = robot.distance(self.x);
-                    if np.isnan(d_min) or d_current < d_min:
+                    d_current = robot.distance(self.x)[0];
+                    if d_current < d_min:
                         i_min = i;
+
             u_ref = robots[i_min].distance_grad(self.x);
 
         u = qp_supervisor(-P.T, -q.T, u_ref=u_ref);
@@ -639,7 +649,6 @@ class Robot:
     def impact(self, evader):
         dist = self.distance(evader.x);
         dist -= evader.r;
-        dist -= evader.tag_r;
         if dist < self.tag_r:
             return True;
         return False;

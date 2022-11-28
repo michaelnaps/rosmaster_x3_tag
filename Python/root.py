@@ -24,17 +24,17 @@ def init_environment(wall_type):
 
     robot_radius = 0.15;  # safety radius
     tag_radius = 0.15;
-    pursuer_gain = 3.0;
+    pursuer_gain = 1;
 
-    b_c = np.array([[0],[0]]);
+    b_c = np.array([[2],[-2]]);
     sphere_temp = gm.Sphere(b_c, robot_radius, tag_radius);
     bernard = gm.Robot(sphere_temp, 'pursuer', 'yellowgreen', 'bernard');
 
-    s_c = np.array([[-1.5], [0.25]]);
+    s_c = np.array([[-1], [1]]);
     sphere_temp = gm.Sphere(s_c, robot_radius, tag_radius);
     scrappy = gm.Robot(sphere_temp, 'evader', 'firebrick', 'scrappy');
 
-    o_c = np.array([[1.5], [-0.75]]);
+    o_c = np.array([[-2], [2]]);
     sphere_temp = gm.Sphere(o_c, robot_radius, tag_radius);
     oswaldo = gm.Robot(sphere_temp, 'evader', 'mediumpurple', 'oswaldo');
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     polyworld, robots = init_environment('polygon');
 
-    sphereworld, _    = init_environment('sphere');
+    sphereworld, _ = init_environment('sphere');
 
     point = np.array([[1.5], [1.5]]);
     # print(polyworld.distance_grad(point));
@@ -62,8 +62,8 @@ if __name__ == "__main__":
     xrange = [-3.25, 3.25];
     yrange = xrange;
 
-    ans = input("See threshold plots? [y/n] ");
-    if ans == 'y':
+    ans1 = input("See threshold plots? [y/n] ");
+    if ans1 == 'y':
         polyworld.plot();
         grid_var.plot_threshold(polyworld.distance_grad, threshold, xrange, yrange);
         plt.show();
@@ -72,6 +72,15 @@ if __name__ == "__main__":
         grid_var.plot_threshold(sphereworld.distance_grad, threshold, xrange, yrange);
         plt.show();
 
-    ans = input("See animation? [y/n] ");
-    if ans == 'y':
-        sphereworld.animate(1000, 0.025);
+    ans2 = input("See animation? [y/n] ");
+    if ans2 == 'y':
+        N = 1000;
+        alpha = 0.025;
+
+        ans3 = input("Which environment? [p/s] ")
+        if ans3 == 'p':
+            polyworld.animate(N, alpha);
+        elif ans3 =='s':
+            sphereworld.animate(N, alpha);
+
+        print("Animation complete.");
