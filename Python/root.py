@@ -20,10 +20,11 @@ def init_environment(wall_type):
         env_center = np.array([[0.],[0.]]);
         env_radius = -3;
         walls = gm.Sphere(env_center, env_radius);
-        wall_gain = 0.3;
+        wall_gain = 0.75;
 
     robot_radius = 0.15;  # safety radius
     tag_radius = 0.15;
+    pursuer_gain = 2;
 
     b_c = np.array([[0],[0]]);
     sphere_temp = gm.Sphere(b_c, robot_radius, tag_radius);
@@ -38,7 +39,7 @@ def init_environment(wall_type):
     oswaldo = gm.Robot(sphere_temp, 'evader', 'mediumpurple', 'oswaldo');
 
     robots = (bernard, scrappy, oswaldo);
-    world = gm.RobotEnvironment(walls, robots, wall_gain);
+    world = gm.RobotEnvironment(walls, robots, wall_gain, pursuer_gain);
 
     return world, robots;
 
@@ -73,4 +74,4 @@ if __name__ == "__main__":
 
     ans = input("See animation? [y/n] ");
     if ans == 'y':
-        sphereworld.animate(1000, 0.01);
+        sphereworld.animate(1000, 0.025);

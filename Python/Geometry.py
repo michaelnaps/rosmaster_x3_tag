@@ -557,10 +557,10 @@ class Sphere:
             if np.abs(points_dist[i]) < TOL:
                 points_grad.append([[0.],[0.]])
 
-            elif points_dist[i] > 0:
+            elif points_dist[i] > self.distance_influence:
                 points_grad.append((point - center) / points_dist[i])
 
-            elif (points_dist[i] - self.distance_influence) < 0:
+            elif points_dist[i] < self.distance_influence:
                 points_grad.append([[np.nan],[np.nan]]);
 
         points_grad = np.array(points_grad)
@@ -646,14 +646,15 @@ class Robot:
 
 
 class RobotEnvironment:
-    def __init__(self, walls, robots, wall_gain):
+    def __init__(self, walls, robots, wall_gain=1, pursuer_gain=1):
         if walls.is_filled():
             self.walls = walls.flip();
         else:
             self.walls = walls;
 
         self.robots = robots;
-        self.wall_gain = wall_gain;
+        self.wgain = wall_gain;
+        self.pgain = pursuer_gain;
         self.pause = 0;
 
     def distance_grad(self, point, exclude_robot=None):
@@ -662,9 +663,13 @@ class RobotEnvironment:
         robot_grad = np.array([[0],[0]]);
         for robot in self.robots:
             if not exclude_robot == robot.name:
-                robot_grad = robot_grad + robot.distance_grad(point);
+                if robot.role == 'pursuer':
+                    g = self.pgain;
+                else:
+                    g = 1;
+                robot_grad = robot_grad + g*robot.distance_grad(point);
 
-        return robot_grad + walls_grad;
+        return robot_grad + self.wgain*walls_grad;
 
     def update(self, dt=0.001):
         TOL = 1E-6;
