@@ -13,14 +13,27 @@ def init_environment(wall_type):
             [-3, 3, 3, -3],
             [3, 3, -3, -3]
         ]);
-        walls = gm.Polygon(bounds);
+        walls = (gm.Polygon(bounds), );
         wall_gain = 1;
 
     elif wall_type =='sphere':
         env_center = np.array([[0.],[0.]]);
         env_radius = -3;
-        walls = gm.Sphere(env_center, env_radius);
+        walls = (gm.Sphere(env_center, env_radius), );
         wall_gain = 1;
+
+    elif wall_type == 'all':
+        bounds = np.array([
+            [-3, 3, 3, -3],
+            [3, 3, -3, -3]
+        ]);
+        wall_gain = 1;
+
+        env_center = np.array([[0.],[0.]]);
+        env_radius = np.sqrt(3**2 + 3**2);
+        wall_gain = 1;
+
+        walls = (gm.Polygon(bounds), gm.Sphere(env_center, env_radius));
 
     robot_radius = 0.15;  # safety radius
     tag_radius = 0.15;
@@ -46,9 +59,11 @@ def init_environment(wall_type):
 
 if __name__ == "__main__":
 
-    polyworld, robots = init_environment('polygon');
+    polyworld, robots   = init_environment('polygon');
 
-    sphereworld, _ = init_environment('sphere');
+    sphereworld, _      = init_environment('sphere');
+
+    allworld, _         = init_environment('all');
 
     point = np.array([[1.5], [1.5]]);
     # print(polyworld.distance_grad(point));
@@ -72,15 +87,21 @@ if __name__ == "__main__":
         grid_var.plot_threshold(sphereworld.distance_grad, threshold, xrange, yrange);
         plt.show();
 
+        allworld.plot();
+        grid_var.plot_threshold(allworld.distance_grad, threshold, xrange, yrange);
+        plt.show();
+
     ans2 = input("See animation? [y/n] ");
     if ans2 == 'y':
         N = 1000;
         alpha = 0.025;
 
-        ans3 = input("Which environment? [p/s] ")
+        ans3 = input("Which environment? [p/s/a] ")
         if ans3 == 'p':
             polyworld.animate(N, alpha);
         elif ans3 =='s':
             sphereworld.animate(N, alpha);
+        elif ans3 =='a':
+            allworld.animate(N, alpha);
 
         print("Animation complete.");

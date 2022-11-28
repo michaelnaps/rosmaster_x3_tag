@@ -609,8 +609,12 @@ class Robot:
         return self.sphere.distance_grad(points);
 
     def control(self, dt, robots, walls, wgain=1, pgain=1):
-        q = wgain*walls.distance(self.x);
-        P = wgain*walls.distance_grad(self.x);
+
+        q = np.array([0]);
+        P = np.array([[0],[0]]);
+        for wall in walls:
+            q = q + wgain*wall.distance(self.x);
+            P = P + wgain*wall.distance_grad(self.x);
 
         if q.ndim == 1:
             q.shape = (q.shape[0], 1);
@@ -656,10 +660,11 @@ class Robot:
 
 class RobotEnvironment:
     def __init__(self, walls, robots, wall_gain=1, pursuer_gain=1):
-        if walls.is_filled():
-            self.walls = walls.flip();
-        else:
-            self.walls = walls;
+        for wall in walls:
+            if wall.is_filled():
+                wall.flip();
+
+        self.walls = walls;
 
         self.robots = robots;
         self.wgain = wall_gain;
@@ -667,7 +672,9 @@ class RobotEnvironment:
         self.pause = 0;
 
     def distance_grad(self, point, exclude_robot=None):
-        walls_grad = self.walls.total_distance_grad(point);
+        walls_grad = np.array([[0],[0]]);
+        for wall in self.walls:
+            walls_grad = walls_grad + wall.total_distance_grad(point);
 
         robot_grad = np.array([[0],[0]]);
         for robot in self.robots:
@@ -709,7 +716,7 @@ class RobotEnvironment:
         return False;
 
     def plot(self):
-        self.walls.plot(color='k');
+        self.walls[0].plot(color='k');
 
         for robot in self.robots:
             if robot.role == 'evader':
