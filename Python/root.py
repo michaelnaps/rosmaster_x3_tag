@@ -39,11 +39,11 @@ def init_environment(wall_type):
     tag_radius = 0.15;
     pursuer_gain = 1;
 
-    b_c = np.array([[2],[-2]]);
+    b_c = np.array([[2],[-1]]);
     sphere_temp = gm.Sphere(b_c, robot_radius, tag_radius);
     bernard = gm.Robot(sphere_temp, 'pursuer', 'yellowgreen', 'bernard');
 
-    s_c = np.array([[-1], [1]]);
+    s_c = np.array([[1], [1]]);
     sphere_temp = gm.Sphere(s_c, robot_radius, tag_radius);
     scrappy = gm.Robot(sphere_temp, 'evader', 'firebrick', 'scrappy');
 
@@ -77,31 +77,36 @@ if __name__ == "__main__":
     xrange = [-3.25, 3.25];
     yrange = xrange;
 
-    ans1 = input("See threshold plots? [y/n] ");
-    if ans1 == 'y':
-        polyworld.plot();
-        grid_var.plot_threshold(polyworld.distance_grad, threshold, xrange, yrange);
-        plt.show();
+    ans11 = input("See threshold plots? [y/n] ");
+    if ans11 == 'y':
 
-        sphereworld.plot();
-        grid_var.plot_threshold(sphereworld.distance_grad, threshold, xrange, yrange);
-        plt.show();
+        ans12 = input("Which environment? [p/s/a] ")
+        if ans12 == 'p':
+            polyworld.plot();
+            grid_var.plot_threshold(polyworld.distance_grad, threshold, xrange, yrange);
+            plt.show();
 
-        allworld.plot();
-        grid_var.plot_threshold(allworld.distance_grad, threshold, xrange, yrange);
-        plt.show();
+        if ans12 == 's':
+            sphereworld.plot();
+            grid_var.plot_threshold(sphereworld.distance_grad, threshold, xrange, yrange);
+            plt.show();
 
-    ans2 = input("See animation? [y/n] ");
-    if ans2 == 'y':
-        N = 1000;
+        if ans12 == 'a':
+            allworld.plot();
+            grid_var.plot_threshold(allworld.distance_grad, threshold, xrange, yrange);
+            plt.show();
+
+    ans21 = input("See animation? [y/n] ");
+    if ans21 == 'y':
+        N = 10000;
         alpha = 0.025;
 
-        ans3 = input("Which environment? [p/s/a] ")
-        if ans3 == 'p':
+        ans22 = input("Which environment? [p/s/a] ")
+        if ans22 == 'p':
             polyworld.animate(N, alpha);
-        elif ans3 =='s':
+        elif ans22 =='s':
             sphereworld.animate(N, alpha);
-        elif ans3 =='a':
+        elif ans22 =='a':
             allworld.animate(N, alpha);
 
         print("Animation complete.");

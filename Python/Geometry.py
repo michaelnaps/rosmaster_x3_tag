@@ -644,10 +644,16 @@ class Robot:
                     d_current = robot.distance(self.x)[0];
                     if d_current < d_min:
                         i_min = i;
+                        d_min = d_current;
+
+            print('minimum robot:', robots[i_min].name)
 
             u_ref = robots[i_min].distance_grad(self.x);
 
         u = qp_supervisor(-P.T, -q.T, u_ref=u_ref);
+
+        print(self.name, ':', self.role, ':', u.T)
+
         self.move(dt=dt, u=u);
 
     def impact(self, evader):
@@ -702,6 +708,7 @@ class RobotEnvironment:
                     robot.control(dt, self.robots, self.walls, self.wgain, self.pgain);
                     if self.tagged(robot):
                         break;
+
             elif robot.role == 'evader':
                 robot.control(dt, self.robots, self.walls, self.wgain, self.pgain);
 
