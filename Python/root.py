@@ -20,11 +20,11 @@ def init_environment(wall_type):
         env_center = np.array([[0.],[0.]]);
         env_radius = -3;
         walls = gm.Sphere(env_center, env_radius);
-        wall_gain = 0.75;
+        wall_gain = 1;
 
     robot_radius = 0.15;  # safety radius
     tag_radius = 0.15;
-    pursuer_gain = 2;
+    pursuer_gain = 3.0;
 
     b_c = np.array([[0],[0]]);
     sphere_temp = gm.Sphere(b_c, robot_radius, tag_radius);
@@ -51,8 +51,8 @@ if __name__ == "__main__":
     sphereworld, _    = init_environment('sphere');
 
     point = np.array([[1.5], [1.5]]);
-    print(polyworld.distance_grad(point));
-    print(sphereworld.distance_grad(point));
+    # print(polyworld.distance_grad(point));
+    # print(sphereworld.distance_grad(point));
 
     x_ticks = np.linspace(-3, 3, 60);
     y_ticks = np.linspace(-3, 3, 60);

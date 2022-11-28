@@ -608,9 +608,9 @@ class Robot:
     def distance_grad(self, points):
         return self.sphere.distance_grad(points);
 
-    def control(self, dt, robots, walls, wall_gain=1):
-        q = wall_gain*walls.distance(self.x);
-        P = wall_gain*walls.distance_grad(self.x);
+    def control(self, dt, robots, walls, wgain=1, pgain=1):
+        q = wgain*walls.distance(self.x);
+        P = wgain*walls.distance_grad(self.x);
 
         if q.ndim == 1:
             q.shape = (q.shape[0], 1);
@@ -622,7 +622,7 @@ class Robot:
                         q = np.concatenate((q, [robot.distance(self.x)]), axis=1);
                         P = np.concatenate((P, robot.distance_grad(self.x)), axis=1);
                     elif robot.role == 'pursuer':
-                        u_ref = -robot.distance_grad(self.x);
+                        u_ref = -pgain*robot.distance_grad(self.x);
 
         elif self.role == 'pursuer':
             d_min = np.nan;
@@ -672,7 +672,7 @@ class RobotEnvironment:
         return robot_grad + self.wgain*walls_grad;
 
     def update(self, dt=0.001):
-        TOL = 1E-6;
+        TOL = 1e-6;
         for robot in self.robots:
             if robot.role == 'pursuer':
                 # print(robot.name)
@@ -683,11 +683,11 @@ class RobotEnvironment:
                     self.pause = 0;
 
                 if self.pause == 0:
-                    robot.control(dt, self.robots, self.walls, self.wall_gain);
+                    robot.control(dt, self.robots, self.walls, self.wgain, self.pgain);
                     if self.tagged(robot):
                         break;
             elif robot.role == 'evader':
-                robot.control(dt, self.robots, self.walls, self.wall_gain);
+                robot.control(dt, self.robots, self.walls, self.wgain, self.pgain);
 
     def tagged(self, pursuer):
         for evader in self.robots:
