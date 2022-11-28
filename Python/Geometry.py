@@ -716,7 +716,8 @@ class RobotEnvironment:
         return False;
 
     def plot(self):
-        self.walls[0].plot(color='k');
+        for wall in self.walls[::-1]:
+            wall.plot(color='k');
 
         for robot in self.robots:
             if robot.role == 'evader':
