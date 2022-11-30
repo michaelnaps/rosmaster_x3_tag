@@ -1,0 +1,2 @@
+tag
+-DPYTHON_EXECUTABLE=/usr/bin/python3 -DCATKIN_DEVEL_PREFIX=/home/michaelnaps/prog/rosmaster_x3_tag/project_ws/devel -DCMAKE_INSTALL_PREFIX=/home/michaelnaps/prog/rosmaster_x3_tag/project_ws/install -G Unix Makefiles

@@ -1,0 +1,8 @@
+prefix=/home/michaelnaps/prog/rosmaster_x3_tag/project_ws/install
+
+Name: tag
+Description: Description of tag
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
