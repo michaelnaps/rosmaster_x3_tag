@@ -611,10 +611,11 @@ class Robot:
     def distance_grad(self, points):
         return self.sphere.distance_grad(points);
 
-    def control(self, dt, walls, robots, wgain=1, pgain=1):
+    def control(self, walls, robots, wgain=1, pgain=1):
         q = walls[0].min_distance(self.x);
         P = np.array([[0],[0]]);
         for wall in walls:
+            # print(wall.total_distance_grad(self.x))
             P = P + wgain*wall.total_distance_grad(self.x);
 
         if q.ndim == 1:
@@ -647,17 +648,13 @@ class Robot:
                         i_min = i;
                         d_min = d_current;
 
-            print('minimum robot:', robots[i_min].name)
-
-            print(P.T)
+            # print('minimum robot:', robots[i_min].name)
 
             u_ref = robots[i_min].distance_grad(self.x);
 
         u = qp_supervisor(-P.T, -q.T, u_ref=u_ref);
-
-        print(self.name, ':', self.role, ':', u.T)
-
-        self.move(dt=dt, u=u);
+        # print(self.name, ':', self.role, ':', u.T)
+        return u;
 
     def impact(self, evader):
         dist = self.distance(evader.x);
