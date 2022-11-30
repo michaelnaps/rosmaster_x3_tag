@@ -611,7 +611,7 @@ class Robot:
     def distance_grad(self, points):
         return self.sphere.distance_grad(points);
 
-    def control(self, walls, robots, wgain=1, pgain=1):
+    def control(self, dt, walls, robots, wgain=1, pgain=1):
         q = walls[0].min_distance(self.x);
         P = np.array([[0],[0]]);
         for wall in walls:
@@ -634,7 +634,7 @@ class Robot:
                         q = np.concatenate((q, robot_dist), axis=1);
                         P = np.concatenate((P, robot_grad), axis=1);
 
-                    elif robot.role == 'pursuer':
+                    elif robot.role == 'pursuer' or robot.role == 'paused':
                         u_ref = -pgain*robot.distance_grad(self.x);
 
         elif self.role == 'pursuer':
@@ -648,13 +648,14 @@ class Robot:
                         i_min = i;
                         d_min = d_current;
 
-            # print('minimum robot:', robots[i_min].name)
-
+            print('minimum robot:', robots[i_min].name)
             u_ref = robots[i_min].distance_grad(self.x);
 
+        elif self.role == 'paused':
+            u_ref = np.array([[0],[0]]);
+
         u = qp_supervisor(-P.T, -q.T, u_ref=u_ref);
-        # print(self.name, ':', self.role, ':', u.T)
-        return u;
+        self.move(dt=dt, u=u);
 
     def impact(self, evader):
         dist = self.distance(evader.x);
@@ -697,27 +698,28 @@ class RobotEnvironment:
         TOL = 1e-6;
         for robot in self.robots:
             if robot.role == 'pursuer':
-                # print(robot.name)
-                # print(self.pause)
-                if self.pause > 0:
-                    self.pause -= dt;
-                elif np.abs(self.pause) < TOL:
-                    self.pause = 0;
-
-                if self.pause == 0:
-                    robot.control(dt, self.walls, self.robots, self.wgain, self.pgain);
-                    if self.tagged(robot):
-                        break;
+                robot.control(dt, self.walls, self.robots, self.wgain, self.pgain);
+                if self.tagged(robot):
+                    break;
 
             elif robot.role == 'evader':
                 robot.control(dt, self.walls, self.robots, self.wgain, self.pgain);
+
+            elif robot.role == 'paused':
+                if self.pause > TOL:
+                    self.pause -= dt;
+                elif np.abs(self.pause) < TOL:
+                    robot.role = 'pursuer';
+                    self.pause = 0;
+
+            print(robot.name, ':', robot.role);
 
     def tagged(self, pursuer):
         for evader in self.robots:
             if not evader.name == pursuer.name:
                 if pursuer.impact(evader):
                     pursuer.role = 'evader';
-                    evader.role = 'pursuer';
+                    evader.role = 'paused';
                     self.pause = 1;
                     return True;
         return False;
@@ -729,10 +731,10 @@ class RobotEnvironment:
         for robot in self.robots:
             if robot.role == 'evader':
                 dinf_color = 'g';
-            elif self.pause > 0:
-                dinf_color = 'y';
             elif robot.role == 'pursuer':
                 dinf_color = 'r';
+            elif robot.role == 'paused':
+                dinf_color = 'y';
             robot.plot(dinf_color=dinf_color);
 
     def animate(self, Nt, dt=0.001):

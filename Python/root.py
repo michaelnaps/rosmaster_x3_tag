@@ -60,11 +60,11 @@ def init_environment(wall_type):
 
 if __name__ == "__main__":
 
-    polyworld, robots   = init_environment('polygon');
+    polyworld, robots = init_environment('polygon');
 
-    sphereworld, _      = init_environment('sphere');
+    sphereworld, _    = init_environment('sphere');
 
-    allworld, _         = init_environment('all');
+    allworld, _       = init_environment('all');
 
     point = np.array([[1.5], [1.5]]);
     # print(polyworld.distance_grad(point));
