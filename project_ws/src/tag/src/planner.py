@@ -15,7 +15,7 @@ def get_name_and_id():
     my_id = np.nan;
     robots = ('bernard', 'scrappy', 'oswaldo');
     for i, robot in enumerate(robots):
-        if robot.name == my_name:
+        if robot == my_name:
             my_id = i;
 
     return my_name, my_id;
@@ -40,7 +40,7 @@ def init_environment(my_name):
     tag_radius = 0.15;
     pursuer_gain = 1;
 
-    b_c = np.array([[0],[0]]);
+    b_c = np.array([[0.3],[0.3]]);
     sphere_temp = gm.Sphere(b_c, robot_radius, tag_radius);
     bernard = gm.Robot(sphere_temp, 'pursuer', 'yellowgreen', 'bernard');
 
@@ -48,7 +48,7 @@ def init_environment(my_name):
     sphere_temp = gm.Sphere(s_c, robot_radius, tag_radius);
     scrappy = gm.Robot(sphere_temp, 'evader', 'firebrick', 'scrappy');
 
-    center = np.array([[0],[0]]);
+    o_c = np.array([[-0.3],[-0.3]]);
     sphere_temp = gm.Sphere(o_c, robot_radius, tag_radius);
     oswaldo = gm.Robot(sphere_temp, 'evader', 'mediumpurple', 'oswaldo');
 
@@ -75,17 +75,17 @@ if __name__ == "__main__":
     DesiredTrajectory = Twist();
 
     my_name, my_id = get_name_and_id();
-    walls, robots  = init_environment();
-    publisher, subscribers, rate = init_publisher();
+    walls, robots  = init_environment(my_name);
+    publisher, subscribers, rate = init_pub_and_sub(my_name);
 
     while not rospy.is_shutdown():
-        # # update position of all three robots
-        # for robot in robots:
-        #     if robot.name == my_name:
-        #         update self
-        #     else:
-        #         update others
-        #     robot.x = get robot position;
+        # update position of all three robots
+        for robot in robots:
+            if robot.name == my_name:
+                # robot.x =
+            else:
+                # update others
+            robot.x = get robot position;
 
         u = robots[my_id].control(walls, robots);
 
