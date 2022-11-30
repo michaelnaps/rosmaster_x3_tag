@@ -23,31 +23,32 @@ def init_environment(wall_type):
         wall_gain = 1;
 
     elif wall_type == 'all':
+        bound_w = 5.0;
+        bound_h = 3.5;
         bounds = np.array([
-            [-3, 3, 3, -3],
-            [3, 3, -3, -3]
+            [-bound_w/2, bound_w/2, bound_w/2, -bound_w/2],
+            [bound_h/2, bound_h/2, -bound_h/2, -bound_h/2]
         ]);
-        wall_gain = 1;
 
-        env_center = np.array([[0.],[0.]]);
-        env_radius = np.sqrt(3**2 + 3**2);
-        wall_gain = 1;
+        env_center = np.array([[0],[0]])
+        env_radius = np.sqrt((bound_w/2)**2 + (bound_h/2)**2);
 
+        wall_gain = 1;
         walls = (gm.Polygon(bounds), gm.Sphere(env_center, env_radius));
 
     robot_radius = 0.15;  # safety radius
     tag_radius = 0.15;
     pursuer_gain = 1;
 
-    b_c = np.array([[2],[-1]]);
+    b_c = np.array([[0.5],[0.5]]);
     sphere_temp = gm.Sphere(b_c, robot_radius, tag_radius);
     bernard = gm.Robot(sphere_temp, 'pursuer', 'yellowgreen', 'bernard');
 
-    s_c = np.array([[1], [1]]);
+    s_c = np.array([[0],[0]]);
     sphere_temp = gm.Sphere(s_c, robot_radius, tag_radius);
     scrappy = gm.Robot(sphere_temp, 'evader', 'firebrick', 'scrappy');
 
-    o_c = np.array([[-2], [2]]);
+    o_c = np.array([[-0.75],[-0.75]]);
     sphere_temp = gm.Sphere(o_c, robot_radius, tag_radius);
     oswaldo = gm.Robot(sphere_temp, 'evader', 'mediumpurple', 'oswaldo');
 
@@ -76,6 +77,8 @@ if __name__ == "__main__":
     threshold = 10;
     xrange = [-3.25, 3.25];
     yrange = xrange;
+
+    robots[0].control(0.025, allworld.walls, robots)
 
     ans11 = input("See threshold plots? [y/n] ");
     if ans11 == 'y':

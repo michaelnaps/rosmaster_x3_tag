@@ -434,7 +434,7 @@ class Polygon:
 
     def min_distance(self, point):
         dist = self.distance(point)[0];
-        return np.min(dist);
+        return np.array([np.min(dist)]);
 
     def distance_grad(self, point, h=1e-3):
         # distances from point
@@ -542,6 +542,9 @@ class Sphere:
 
         return np.array(points_dist)
 
+    def min_distance(self, points):
+        return self.distance(points);
+
     def distance_grad(self, points):
         """
         Computes the gradient of the signed distance between points and the
@@ -608,13 +611,11 @@ class Robot:
     def distance_grad(self, points):
         return self.sphere.distance_grad(points);
 
-    def control(self, dt, robots, walls, wgain=1, pgain=1):
-
-        q = np.array([0]);
+    def control(self, dt, walls, robots, wgain=1, pgain=1):
+        q = walls[0].min_distance(self.x);
         P = np.array([[0],[0]]);
         for wall in walls:
-            q = q + wgain*wall.distance(self.x);
-            P = P + wgain*wall.distance_grad(self.x);
+            P = P + wgain*wall.total_distance_grad(self.x);
 
         if q.ndim == 1:
             q.shape = (q.shape[0], 1);
@@ -647,6 +648,8 @@ class Robot:
                         d_min = d_current;
 
             print('minimum robot:', robots[i_min].name)
+
+            print(P.T)
 
             u_ref = robots[i_min].distance_grad(self.x);
 
@@ -705,12 +708,12 @@ class RobotEnvironment:
                     self.pause = 0;
 
                 if self.pause == 0:
-                    robot.control(dt, self.robots, self.walls, self.wgain, self.pgain);
+                    robot.control(dt, self.walls, self.robots, self.wgain, self.pgain);
                     if self.tagged(robot):
                         break;
 
             elif robot.role == 'evader':
-                robot.control(dt, self.robots, self.walls, self.wgain, self.pgain);
+                robot.control(dt, self.walls, self.robots, self.wgain, self.pgain);
 
     def tagged(self, pursuer):
         for evader in self.robots:
