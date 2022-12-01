@@ -59,12 +59,14 @@ def init_environment(my_name):
 def init_pub_and_sub(my_name):
     publisher = rospy.Publisher('/' + my_name + '/planner', Twist, queue_size=10);
 
-    robots = ('bernard', 'scrappy', 'oswaldo');
-    subscribers = (
-        rospy.Subscriber('/' + robots[0] + '/', ),
-        rospy.Subscriber('/' + robots[0] + '/', ),
-        rospy.Subscriber('/' + robots[0] + '/', )
-    )
+    # robots = ('bernard', 'scrappy', 'oswaldo');
+    # subscribers = (
+    #     rospy.Subscriber('/' + robots[0] + '/', ),
+    #     rospy.Subscriber('/' + robots[0] + '/', ),
+    #     rospy.Subscriber('/' + robots[0] + '/', )
+    # )
+
+    subscribers = [];
 
     return publisher, subscribers;
 
@@ -76,18 +78,19 @@ if __name__ == "__main__":
 
     my_name, my_id = get_name_and_id();
     walls, robots  = init_environment(my_name);
-    publisher, subscribers, rate = init_pub_and_sub(my_name);
+    pub, subs = init_pub_and_sub(my_name);
 
     while not rospy.is_shutdown():
-        # update position of all three robots
-        for robot in robots:
-            if robot.name == my_name:
-                # robot.x =
-            else:
-                # update others
-            robot.x = get robot position;
+        # # update position of all three robots
+        # for robot in robots:
+        #     if robot.name == my_name:
+        #         # robot.x =
+        #     else:
+        #         update others
+        #         robot.x = get robot position;
 
         u = robots[my_id].control(walls, robots);
+        print(u.T)
 
         DesiredTrajectory.linear.x = u[0][0];
         DesiredTrajectory.linear.y = u[1][0];
