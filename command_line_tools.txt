@@ -1,0 +1,15 @@
+// launch roscore
+roscore
+
+// ssh into jetson
+ssh jetson@ip_address_numbers
+passwork: yahboom
+
+// set terminal namespace
+export ROS_NAMESPACE=bernard
+
+// keyboard control of robot
+rosrun cmd_vel:=/robot_name/cmd_vel
+
+// robot position
+rostopic echo /robot_name/amcl_pose
