@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import cvxopt as cvx
 from scipy.linalg import block_diag
 
+from geometry_msgs.msg import PoseWithCovarianceStamped
+
 
 def gca_3d():
     """
@@ -637,6 +639,10 @@ class Robot:
                     elif robot.role == 'pursuer' or robot.role == 'paused':
                         u_ref = -pgain*robot.distance_grad(self.x);
 
+                    print(q);
+                    print(P);
+                    print(u_ref);
+
         elif self.role == 'pursuer':
             i_min = -1;
             d_min = np.inf;
@@ -666,63 +672,37 @@ class Robot:
 
 
 class RobotEnvironment:
-    def __init__(self, walls, robots, wall_gain=1, pursuer_gain=1):
+    def __init__(self, walls, robots, publisher):
         for wall in walls:
             if wall.is_filled():
                 wall.flip();
-
         self.walls = walls;
 
         self.robots = robots;
-        self.wgain = wall_gain;
-        self.pgain = pursuer_gain;
-        self.pause = 0;
+        self.pub = publisher;
 
-    def distance_grad(self, point, exclude_robot=None):
-        walls_grad = np.array([[0],[0]]);
-        for wall in self.walls:
-            walls_grad = walls_grad + wall.total_distance_grad(point);
+    def oswaldo_callback(self, msg):
+        xpos = msg.pose.pose.position.x;
+        ypos = msg.pose.pose.position.y;
+        self.robots[2].x = np.array([
+            [xpos], [ypos]
+        ]);
 
-        robot_grad = np.array([[0],[0]]);
-        for robot in self.robots:
-            if not exclude_robot == robot.name:
-                if robot.role == 'pursuer':
-                    g = self.pgain;
-                else:
-                    g = 1;
-                robot_grad = robot_grad + g*robot.distance_grad(point);
+        print(self.robots[2].x)
+        u = self.robots[2].control(self.walls, self.robots);
 
-        return robot_grad + self.wgain*walls_grad;
+        DesiredTrajectory = PoseWithCovarianceStamped();
 
-    def update(self, dt=0.001):
-        TOL = 1e-6;
-        for robot in self.robots:
-            if robot.role == 'pursuer':
-                robot.control(dt, self.walls, self.robots, self.wgain, self.pgain);
-                if self.tagged(robot):
-                    break;
+        DesiredTrajectory.linear.x = u[0][0];
+        DesiredTrajectory.linear.y = u[1][0];
+        DesiredTrajectory.linear.z = 0;
 
-            elif robot.role == 'evader':
-                robot.control(dt, self.walls, self.robots, self.wgain, self.pgain);
+        DesiredTrajectory.angular.x = 0;
+        DesiredTrajectory.angular.y = 0;
+        DesiredTrajectory.angular.z = 0;
 
-            elif robot.role == 'paused':
-                if self.pause > TOL:
-                    self.pause -= dt;
-                elif np.abs(self.pause) < TOL:
-                    robot.role = 'pursuer';
-                    self.pause = 0;
+        self.pub.publish(DesiredTrajectory);
 
-            print(robot.name, ':', robot.role);
-
-    def tagged(self, pursuer):
-        for evader in self.robots:
-            if not evader.name == pursuer.name:
-                if pursuer.impact(evader):
-                    pursuer.role = 'evader';
-                    evader.role = 'paused';
-                    self.pause = 1;
-                    return True;
-        return False;
 
     def plot(self):
         for wall in self.walls[::-1]:

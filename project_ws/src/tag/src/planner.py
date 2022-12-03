@@ -61,8 +61,8 @@ def init_pub_and_sub(my_name):
 
     robots = ('bernard', 'scrappy', 'oswaldo');
     # subscribers = (
-    #     rospy.Subscriber('/' + robots[0] + '/', ),
-    #     rospy.Subscriber('/' + robots[0] + '/', ),
+    #     rospy.Subscriber('/' + robots[0] + '/amcl_pose', ),
+    #     rospy.Subscriber('/' + robots[0] + '/amcl_pose', ),
     #     rospy.Subscriber('/' + robots[0] + '/', )
     # )
 
@@ -82,20 +82,14 @@ if __name__ == "__main__":
     pub = rospy.Publisher('/' + my_name + '/cmd_vel', Twist, queue_size=10)
 
     while not rospy.is_shutdown():
-        # # update position of all three robots
-        # for robot in robots:
-        #     if robot.name == my_name:
-        #         # robot.x =
-        #     else:
-        #         # update others
-        #     robot.x = get robot position;
 
-        # u = robots[my_id].control(walls, robots);
+        DesiredTrajectory.linear.x = 1;
+        DesiredTrajectory.linear.y = 0;
+        DesiredTrajectory.linear.z = 0;
 
-        print(1);
-
-        DesiredTrajectory.linear.x = 1#u[0][0];
-        DesiredTrajectory.linear.y = 0#u[1][0];
+        DesiredTrajectory.angular.x = 0;
+        DesiredTrajectory.angular.y = 0;
+        DesiredTrajectory.angular.z = 0;
 
         pub.publish(DesiredTrajectory);
         rate.sleep();
