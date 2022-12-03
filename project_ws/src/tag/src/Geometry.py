@@ -614,14 +614,15 @@ class Robot:
         return self.sphere.distance_grad(points);
 
     def control(self, walls, robots, wgain=1, pgain=1):
-        q = walls[0].min_distance(self.x);
-        P = np.array([[0],[0]]);
-        for wall in walls:
-            # print(wall.total_distance_grad(self.x))
-            P = P + wgain*wall.total_distance_grad(self.x);
+        q = walls[0].distance(self.x);
+        P = wgain*walls[0].distance_grad(self.x);
 
         if q.ndim == 1:
             q.shape = (q.shape[0], 1);
+
+        for wall in walls[1:]:
+            q = np.concatenate((q, [wall.distance(self.x)]), axis=1);
+            P = np.concatenate((P, wgain*wall.distance_grad(self.x)), axis=1);
 
         if self.role == 'evader':
             for robot in robots:
@@ -638,10 +639,6 @@ class Robot:
 
                     elif robot.role == 'pursuer' or robot.role == 'paused':
                         u_ref = -pgain*robot.distance_grad(self.x);
-
-                    print(q);
-                    print(P);
-                    print(u_ref);
 
         elif self.role == 'pursuer':
             i_min = -1;
