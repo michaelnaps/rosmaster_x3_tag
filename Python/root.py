@@ -23,21 +23,23 @@ def init_environment(wall_type):
         wall_gain = 1;
 
     elif wall_type == 'all':
-        bound_w = 5.0;
-        bound_h = 3.5;
+        # establish environment
+        bound_w = 3;
+        bound_h = 3;
         bounds = np.array([
             [-bound_w/2, bound_w/2, bound_w/2, -bound_w/2],
             [bound_h/2, bound_h/2, -bound_h/2, -bound_h/2]
         ]);
 
         env_center = np.array([[0],[0]])
-        env_radius = np.sqrt((bound_w/2)**2 + (bound_h/2)**2);
+        env_radius = -np.sqrt((bound_w/2)**2 + (bound_h/2)**2);
 
         wall_gain = 1;
         walls = (gm.Polygon(bounds), gm.Sphere(env_center, env_radius));
 
-    robot_radius = 0.15;  # safety radius
-    tag_radius = 0.15;
+    # establish robot variables
+    robot_radius = 0.11;
+    tag_radius = 0.11;
     pursuer_gain = 1;
 
     b_c = np.array([[0.5],[0.5]]);
@@ -48,12 +50,13 @@ def init_environment(wall_type):
     sphere_temp = gm.Sphere(s_c, robot_radius, tag_radius);
     scrappy = gm.Robot(sphere_temp, 'evader', 'firebrick', 'scrappy');
 
-    o_c = np.array([[-0.75],[-0.75]]);
+    o_c = np.array([[-0.5],[-0.5]]);
     sphere_temp = gm.Sphere(o_c, robot_radius, tag_radius);
     oswaldo = gm.Robot(sphere_temp, 'evader', 'mediumpurple', 'oswaldo');
 
     robots = (bernard, scrappy, oswaldo);
-    world = gm.RobotEnvironment(walls, robots, wall_gain, pursuer_gain);
+
+    world = gm.RobotEnvironment(walls, robots);
 
     return world, robots;
 
@@ -101,7 +104,7 @@ if __name__ == "__main__":
 
     ans21 = input("See animation? [y/n] ");
     if ans21 == 'y':
-        N = 10000;
+        N = 1000;
         alpha = 0.025;
 
         ans22 = input("Which environment? [p/s/a] ")
