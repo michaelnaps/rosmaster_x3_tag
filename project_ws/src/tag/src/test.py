@@ -4,8 +4,9 @@ import os
 
 import sys
 import rospy
-from geometry_msgs.msg import Twist
+from std_msgs.msg import Int64
 from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import Twist
 
 import numpy as np
 import Geometry as gm
@@ -14,14 +15,9 @@ import Geometry as gm
 rospy.init_node('tag');
 
 
-def callback(msg):
-    print(msg.pose.pose.position.x);
-    return;
-
-
 def get_name_and_id():
     # THIS ROBOTS NAME AND ID ARE:
-    my_name = rospy.get_namespace();
+    my_name = sys.argv[1];
 
     my_id = np.nan;
     robots = ('bernard', 'scrappy', 'oswaldo');
@@ -34,8 +30,8 @@ def get_name_and_id():
 
 def init_environment(my_name, publisher):
     # establish environment
-    bound_w = 3;
-    bound_h = 3;
+    bound_w = 3.25;
+    bound_h = 2.75;
     bounds = np.array([
         [-bound_w/2, bound_w/2, bound_w/2, -bound_w/2],
         [bound_h/2, bound_h/2, -bound_h/2, -bound_h/2]
@@ -48,8 +44,8 @@ def init_environment(my_name, publisher):
     walls = (gm.Polygon(bounds), gm.Sphere(env_center, env_radius));
 
     # establish robot variables
-    robot_radius = 0.15;
-    tag_radius = 0.15;
+    robot_radius = 0.11;
+    tag_radius = 0.11;
     pursuer_gain = 1;
 
     b_c = np.array([[0.5],[0.5]]);
@@ -70,16 +66,22 @@ def init_environment(my_name, publisher):
 
 
 if __name__ == "__main__":
-    rate = rospy.Rate(1);
+    rate = rospy.Rate(10);
     DesiredTrajectory = Twist();
 
     my_name, my_id = get_name_and_id();
 
-    pub = rospy.Publisher('cmd_vel', Twist, queue_size=10);
+    pub = rospy.Publisher(my_name + '_cmd_vel', Twist, queue_size=10);
 
     walls, robots = init_environment(my_name, pub);
-    World = gm.RobotEnvironment(walls, robots, pub);
+    World = gm.RobotEnvironment(walls, robots, my_id, pub);
 
-    sub = rospy.Subscriber('/oswaldo/amcl_pose', PoseWithCovarianceStamped, World.oswaldo_callback);
+    # sub = rospy.Subscriber('bernard_role', String, World.bernard_role_callback);
+    # sub = rospy.Subscriber('scrappy_role', PoseWithCovarianceStamped, World.scrappy_role_callback);
+    sub = rospy.Subscriber('oswaldo_role', PoseWithCovarianceStamped, World.oswaldo_role_callback);
+
+    # sub = rospy.Subscriber('bernard_pose', Int64, World.bernard_position_callback);
+    # sub = rospy.Subscriber('scrappy_pose', Int64, World.scrappy_position_callback);
+    sub = rospy.Subscriber('oswaldo_pose', Int64, World.oswaldo_position_callback);
 
     rospy.spin();

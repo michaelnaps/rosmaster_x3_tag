@@ -1,16 +1,23 @@
 #! /usr/bin/env python3
 
+import os
+
 import sys
 import rospy
+from std_msgs.msg import Int64
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from geometry_msgs.msg import Twist
 
 import numpy as np
 import Geometry as gm
 
+
+rospy.init_node('tag');
+
+
 def get_name_and_id():
     # THIS ROBOTS NAME AND ID ARE:
-    my_argv = rospy.myargv(argv=sys.argv);
-    my_name = my_argv[1];
+    my_name = sys.argv[1];
 
     my_id = np.nan;
     robots = ('bernard', 'scrappy', 'oswaldo');
@@ -20,10 +27,11 @@ def get_name_and_id():
 
     return my_name, my_id;
 
-def init_environment(my_name):
+
+def init_environment(my_name, publisher):
     # establish environment
-    bound_w = 5.0;
-    bound_h = 3.5;
+    bound_w = 2.75;
+    bound_h = 3.25;
     bounds = np.array([
         [-bound_w/2, bound_w/2, bound_w/2, -bound_w/2],
         [bound_h/2, bound_h/2, -bound_h/2, -bound_h/2]
@@ -36,60 +44,56 @@ def init_environment(my_name):
     walls = (gm.Polygon(bounds), gm.Sphere(env_center, env_radius));
 
     # establish robot variables
-    robot_radius = 0.15;
-    tag_radius = 0.15;
+    robot_radius = 0.11;
+    tag_radius = 0.11;
     pursuer_gain = 1;
 
-    b_c = np.array([[0.3],[0.3]]);
+    b_c = np.array([[0.69],[-0.57]]);
     sphere_temp = gm.Sphere(b_c, robot_radius, tag_radius);
-    bernard = gm.Robot(sphere_temp, 'pursuer', 'yellowgreen', 'bernard');
+    bernard = gm.Robot(sphere_temp, 'evader', 'yellowgreen', 'bernard');
 
-    s_c = np.array([[0],[0]]);
+    s_c = np.array([[0.5],[0.5]]);
     sphere_temp = gm.Sphere(s_c, robot_radius, tag_radius);
     scrappy = gm.Robot(sphere_temp, 'evader', 'firebrick', 'scrappy');
 
-    o_c = np.array([[-0.3],[-0.3]]);
+    o_c = np.array([[-0.5],[-0.5]]);
     sphere_temp = gm.Sphere(o_c, robot_radius, tag_radius);
-    oswaldo = gm.Robot(sphere_temp, 'evader', 'mediumpurple', 'oswaldo');
+    oswaldo = gm.Robot(sphere_temp, 'pursuer', 'mediumpurple', 'oswaldo');
 
     robots = (bernard, scrappy, oswaldo);
 
     return (walls, robots);
 
-def init_pub_and_sub(my_name):
-    publisher = rospy.Publisher('/' + my_name + '/cmd_vel', Twist, queue_size=10);
-
-    robots = ('bernard', 'scrappy', 'oswaldo');
-    # subscribers = (
-    #     rospy.Subscriber('/' + robots[0] + '/amcl_pose', ),
-    #     rospy.Subscriber('/' + robots[0] + '/amcl_pose', ),
-    #     rospy.Subscriber('/' + robots[0] + '/', )
-    # )
-
-    subscribers = [];
-
-    return publisher, subscribers;
 
 if __name__ == "__main__":
-    rospy.init_node('tag');
-    rate = rospy.Rate(100);
-
+    rate = rospy.Rate(10);
     DesiredTrajectory = Twist();
 
     my_name, my_id = get_name_and_id();
-    walls, robots  = init_environment(my_name);
-    # pub, sub = init_pub_and_sub(my_name);
-    pub = rospy.Publisher('/' + my_name + '/cmd_vel', Twist, queue_size=10)
 
-    while not rospy.is_shutdown():
+    pub = rospy.Publisher(my_name + '_cmd_vel', Twist, queue_size=10);
 
-        DesiredTrajectory.linear.x = 1;
-        DesiredTrajectory.linear.y = 0;
-        DesiredTrajectory.linear.z = 0;
+    DesiredTrajectory = Twist();
 
-        DesiredTrajectory.angular.x = 0;
-        DesiredTrajectory.angular.y = 0;
-        DesiredTrajectory.angular.z = 0;
+    DesiredTrajectory.linear.x = 0.01;
+    DesiredTrajectory.linear.y = 0.01;
+    DesiredTrajectory.linear.z = 0;
 
-        pub.publish(DesiredTrajectory);
-        rate.sleep();
+    DesiredTrajectory.angular.x = 0;
+    DesiredTrajectory.angular.y = 0;
+    DesiredTrajectory.angular.z = 0;
+
+    pub.publish(DesiredTrajectory);
+
+    walls, robots = init_environment(my_name, pub);
+    World = gm.RobotEnvironment(walls, robots, my_id, pub);
+
+    sub = rospy.Subscriber('bernard_role', Int64, World.bernard_role_callback);
+    sub = rospy.Subscriber('scrappy_role', Int64, World.scrappy_role_callback);
+    sub = rospy.Subscriber('oswaldo_role', Int64, World.oswaldo_role_callback);
+
+    sub = rospy.Subscriber('bernard_pose', PoseWithCovarianceStamped, World.bernard_position_callback);
+    sub = rospy.Subscriber('scrappy_pose', PoseWithCovarianceStamped, World.scrappy_position_callback);
+    sub = rospy.Subscriber('oswaldo_pose', PoseWithCovarianceStamped, World.oswaldo_position_callback);
+
+    rospy.spin();

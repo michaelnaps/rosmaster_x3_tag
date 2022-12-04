@@ -6,9 +6,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import cvxopt as cvx
-from scipy.linalg import block_diag
 
+from std_msgs.msg import Int64
 from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import Twist
 
 
 def gca_3d():
@@ -617,6 +618,9 @@ class Robot:
         q = walls[0].distance(self.x);
         P = wgain*walls[0].distance_grad(self.x);
 
+        # print("q1:", q);
+        # print("P1:", P);
+
         if q.ndim == 1:
             q.shape = (q.shape[0], 1);
 
@@ -657,6 +661,10 @@ class Robot:
         elif self.role == 'paused':
             u_ref = np.array([[0],[0]]);
 
+        # print("q2:", -q.T);
+        # print("P2:", -P.T);
+        # print("u_ref", u_ref);
+
         u = qp_supervisor(-P.T, -q.T, u_ref=u_ref);
         return u;
 
@@ -669,37 +677,145 @@ class Robot:
 
 
 class RobotEnvironment:
-    def __init__(self, walls, robots, publisher):
+    def __init__(self, walls, robots, id, pub):
         for wall in walls:
             if wall.is_filled():
                 wall.flip();
         self.walls = walls;
 
         self.robots = robots;
-        self.pub = publisher;
+        self.env_id = id;
+        self.publisher = pub;
 
-    def oswaldo_callback(self, msg):
+    def bernard_position_callback(self, msg):
+        my_id = 0;
+
         xpos = msg.pose.pose.position.x;
         ypos = msg.pose.pose.position.y;
-        self.robots[2].x = np.array([
+
+        self.robots[my_id].x = np.array([
             [xpos], [ypos]
         ]);
 
-        print(self.robots[2].x)
-        u = self.robots[2].control(self.walls, self.robots);
+        for robot in self.robots:
+            print(robot.name + ' position:', robot.x.T);
 
-        DesiredTrajectory = PoseWithCovarianceStamped();
+        if self.env_id == my_id:
+            u = self.robots[my_id].control(self.walls, self.robots);
 
-        DesiredTrajectory.linear.x = u[0][0];
-        DesiredTrajectory.linear.y = u[1][0];
-        DesiredTrajectory.linear.z = 0;
+            print('u', u);
 
-        DesiredTrajectory.angular.x = 0;
-        DesiredTrajectory.angular.y = 0;
-        DesiredTrajectory.angular.z = 0;
+            DesiredTrajectory = Twist();
 
-        self.pub.publish(DesiredTrajectory);
+            DesiredTrajectory.linear.x = 0.10*u[0][0];
+            DesiredTrajectory.linear.y = 0.10*u[1][0];
+            DesiredTrajectory.linear.z = 0;
 
+            DesiredTrajectory.angular.x = 0;
+            DesiredTrajectory.angular.y = 0;
+            DesiredTrajectory.angular.z = 0;
+
+            print('----------------------------');
+
+            self.publisher.publish(DesiredTrajectory);
+
+    def scrappy_position_callback(self, msg):
+        my_id = 1;
+
+        xpos = msg.pose.pose.position.x;
+        ypos = msg.pose.pose.position.y;
+        self.robots[my_id].x = np.array([
+            [xpos], [ypos]
+        ]);
+
+        for robot in self.robots:
+            print(robot.name + ' position:', robot.x.T);
+
+        if self.env_id == my_id:
+            u = self.robots[my_id].control(self.walls, self.robots);
+
+            print('u', u);
+
+            DesiredTrajectory = Twist();
+
+            DesiredTrajectory.linear.x = u[0][0];
+            DesiredTrajectory.linear.y = u[1][0];
+            DesiredTrajectory.linear.z = 0;
+
+            DesiredTrajectory.angular.x = 0;
+            DesiredTrajectory.angular.y = 0;
+            DesiredTrajectory.angular.z = 0;
+
+            print('----------------------------');
+
+            self.publisher.publish(DesiredTrajectory);
+
+    def oswaldo_position_callback(self, msg):
+        my_id = 2;
+
+        xpos = msg.pose.pose.position.x;
+        ypos = msg.pose.pose.position.y;
+        self.robots[my_id].x = np.array([
+            [xpos], [ypos]
+        ]);
+
+        for robot in self.robots:
+            print(robot.name + ' position:', robot.x.T);
+
+        if self.env_id == my_id:
+            u = self.robots[my_id].control(self.walls, self.robots);
+
+            print('u', u);
+
+            DesiredTrajectory = Twist();
+
+            DesiredTrajectory.linear.x = u[0][0];
+            DesiredTrajectory.linear.y = u[1][0];
+            DesiredTrajectory.linear.z = 0;
+
+            DesiredTrajectory.angular.x = 0;
+            DesiredTrajectory.angular.y = 0;
+            DesiredTrajectory.angular.z = 0;
+
+            print('----------------------------');
+
+            self.publisher.publish(DesiredTrajectory);
+
+    def bernard_role_callback(self, msg):
+        my_id = 0;
+
+        role_number = msg.data;
+
+        if role_number == 1:
+            self.robots[my_id].role = 'pursuer';
+        if role_number == 2:
+            self.robots[my_id].role = 'evader';
+        if role_number == 3:
+            self.robots[my_id].role = 'paused';
+
+    def scrappy_role_callback(self, msg):
+        my_id = 1;
+
+        role_number = msg.data;
+
+        if role_number == 1:
+            self.robots[my_id].role = 'pursuer';
+        if role_number == 2:
+            self.robots[my_id].role = 'evader';
+        if role_number == 3:
+            self.robots[my_id].role = 'paused';
+
+    def oswaldo_role_callback(self, msg):
+        my_id = 2;
+
+        role_number = msg.data;
+
+        if role_number == 1:
+            self.robots[my_id].role = 'pursuer';
+        if role_number == 2:
+            self.robots[my_id].role = 'evader';
+        if role_number == 3:
+            self.robots[my_id].role = 'paused';
 
     def plot(self):
         for wall in self.walls[::-1]:
