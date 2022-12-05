@@ -73,17 +73,17 @@ if __name__ == "__main__":
 
     pub = rospy.Publisher(my_name + '_cmd_vel', Twist, queue_size=10);
 
-    DesiredTrajectory = Twist();
+    InitialPush = Twist();
 
-    DesiredTrajectory.linear.x = 0.01;
-    DesiredTrajectory.linear.y = 0.01;
-    DesiredTrajectory.linear.z = 0;
+    InitialPush.linear.x = -0.5;
+    InitialPush.linear.y = -0.5;
+    InitialPush.linear.z = 0;
 
-    DesiredTrajectory.angular.x = 0;
-    DesiredTrajectory.angular.y = 0;
-    DesiredTrajectory.angular.z = 0;
+    InitialPush.angular.x = 0;
+    InitialPush.angular.y = 0;
+    InitialPush.angular.z = 0;
 
-    pub.publish(DesiredTrajectory);
+    pub.publish(InitialPush);
 
     walls, robots = init_environment(my_name, pub);
     World = gm.RobotEnvironment(walls, robots, my_id, pub);

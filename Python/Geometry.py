@@ -437,27 +437,31 @@ class Polygon:
         return np.array([np.min(dist)]);
 
     def distance_grad(self, point, h=1e-3):
-        # distances from point
-        d = self.distance(point);
+        if self.is_collision(point)[0]:
+            g = np.array([[np.nan], [np.nan]]);
 
-        # 2-point central difference method
-        x_adj = np.array([[h],[0]]);
-        y_adj = np.array([[0],[h]]);
+        else:
+            # distances from point
+            d = self.distance(point);
 
-        ptn1_x = point - x_adj;
-        ptp1_x = point + x_adj;
-        dn1_x = self.distance(ptn1_x)[0];
-        dp1_x = self.distance(ptp1_x)[0];
+            # 2-point central difference method
+            x_adj = np.array([[h],[0]]);
+            y_adj = np.array([[0],[h]]);
 
-        ptn1_y = point - y_adj;
-        ptp1_y = point + y_adj;
-        dn1_y = self.distance(ptn1_y)[0];
-        dp1_y = self.distance(ptp1_y)[0];
+            ptn1_x = point - x_adj;
+            ptp1_x = point + x_adj;
+            dn1_x = self.distance(ptn1_x)[0];
+            dp1_x = self.distance(ptp1_x)[0];
 
-        g = np.array([
-            (dp1_x - dn1_x),
-            (dp1_y - dn1_y)
-        ]) / (2*h*d);
+            ptn1_y = point - y_adj;
+            ptp1_y = point + y_adj;
+            dn1_y = self.distance(ptn1_y)[0];
+            dp1_y = self.distance(ptp1_y)[0];
+
+            g = np.array([
+                (dp1_x - dn1_x),
+                (dp1_y - dn1_y)
+            ]) / (2*h*d);
 
         return g;
 
