@@ -687,7 +687,7 @@ class RobotEnvironment:
                 wall.flip();
         self.walls = walls;
 
-        self.grad_shrink = 0.15;
+        self.grad_shrink = 0.10;
 
         self.robots = robots;
         self.env_id = id;

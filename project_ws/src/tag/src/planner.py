@@ -31,7 +31,7 @@ def get_name_and_id():
 def init_environment(my_name, publisher):
     # establish environment
     bound_w = 2.75;
-    bound_h = 3.25;
+    bound_h = 2.10;
     bounds = np.array([
         [-bound_w/2, bound_w/2, bound_w/2, -bound_w/2],
         [bound_h/2, bound_h/2, -bound_h/2, -bound_h/2]
@@ -48,15 +48,15 @@ def init_environment(my_name, publisher):
     tag_radius = 0.11;
     pursuer_gain = 1;
 
-    b_c = np.array([[0.69],[-0.57]]);
+    b_c = np.array([[0.5],[0.5]]);
     sphere_temp = gm.Sphere(b_c, robot_radius, tag_radius);
     bernard = gm.Robot(sphere_temp, 'evader', 'yellowgreen', 'bernard');
 
-    s_c = np.array([[0.5],[0.5]]);
+    s_c = np.array([[-0.5],[0.5]]);
     sphere_temp = gm.Sphere(s_c, robot_radius, tag_radius);
     scrappy = gm.Robot(sphere_temp, 'evader', 'firebrick', 'scrappy');
 
-    o_c = np.array([[-0.5],[-0.5]]);
+    o_c = np.array([[0.5],[-0.5]]);
     sphere_temp = gm.Sphere(o_c, robot_radius, tag_radius);
     oswaldo = gm.Robot(sphere_temp, 'pursuer', 'mediumpurple', 'oswaldo');
 

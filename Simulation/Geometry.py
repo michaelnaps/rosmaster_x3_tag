@@ -751,9 +751,13 @@ class RobotEnvironment:
             self.update(dt=dt);
             self.plot();
 
-            plt.title('t = %.3f[s]' % t)
+            # plt.title('t = %.3f[s]' % t)
             plt.show(block=0);
-            plt.pause(dt);
+
+            if i == 0:
+                input("Set recorder window...");
+            else:
+                plt.pause(dt);
 
 
 def qp_supervisor(a_barrier, b_barrier, u_ref=None, solver='cvxopt'):
