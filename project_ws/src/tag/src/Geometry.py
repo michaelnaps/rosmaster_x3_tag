@@ -618,7 +618,7 @@ class Robot:
     def distance_grad(self, points):
         return self.sphere.distance_grad(points);
 
-    def control(self, walls, robots, wgain=1, pgain=1):
+    def control(self, walls, robots, wgain=2, pgain=1):
         q = walls[0].distance(self.x);
         P = wgain*walls[0].distance_grad(self.x);
 
@@ -687,7 +687,7 @@ class RobotEnvironment:
                 wall.flip();
         self.walls = walls;
 
-        self.grad_shrink = 0.10;
+        self.grad_shrink = 0.15;
 
         self.robots = robots;
         self.env_id = id;
@@ -799,19 +799,20 @@ class RobotEnvironment:
         if role_number == 3:
             self.robots[my_id].role = 'paused';
 
-            DesiredTrajectory = Twist();
+            if my_id == self.env_id:
+                DesiredTrajectory = Twist();
 
-            DesiredTrajectory.linear.x = 0;
-            DesiredTrajectory.linear.y = 0;
-            DesiredTrajectory.linear.z = 0;
+                DesiredTrajectory.linear.x = 0;
+                DesiredTrajectory.linear.y = 0;
+                DesiredTrajectory.linear.z = 0;
 
-            DesiredTrajectory.angular.x = 0;
-            DesiredTrajectory.angular.y = 0;
-            DesiredTrajectory.angular.z = 0;
+                DesiredTrajectory.angular.x = 0;
+                DesiredTrajectory.angular.y = 0;
+                DesiredTrajectory.angular.z = 0;
 
-            print('----------------------------');
+                print('----------------------------');
 
-            self.publisher.publish(DesiredTrajectory);
+                self.publisher.publish(DesiredTrajectory);
 
     def scrappy_role_callback(self, msg):
         my_id = 1;
@@ -825,19 +826,20 @@ class RobotEnvironment:
         if role_number == 3:
             self.robots[my_id].role = 'paused';
 
-            DesiredTrajectory = Twist();
+            if my_id == self.env_id:
+                DesiredTrajectory = Twist();
 
-            DesiredTrajectory.linear.x = 0;
-            DesiredTrajectory.linear.y = 0;
-            DesiredTrajectory.linear.z = 0;
+                DesiredTrajectory.linear.x = 0;
+                DesiredTrajectory.linear.y = 0;
+                DesiredTrajectory.linear.z = 0;
 
-            DesiredTrajectory.angular.x = 0;
-            DesiredTrajectory.angular.y = 0;
-            DesiredTrajectory.angular.z = 0;
+                DesiredTrajectory.angular.x = 0;
+                DesiredTrajectory.angular.y = 0;
+                DesiredTrajectory.angular.z = 0;
 
-            print('----------------------------');
+                print('----------------------------');
 
-            self.publisher.publish(DesiredTrajectory);
+                self.publisher.publish(DesiredTrajectory);
 
     def oswaldo_role_callback(self, msg):
         my_id = 2;
@@ -851,19 +853,20 @@ class RobotEnvironment:
         if role_number == 3:
             self.robots[my_id].role = 'paused';
 
-            DesiredTrajectory = Twist();
+            if my_id == self.env_id:
+                DesiredTrajectory = Twist();
 
-            DesiredTrajectory.linear.x = 0;
-            DesiredTrajectory.linear.y = 0;
-            DesiredTrajectory.linear.z = 0;
+                DesiredTrajectory.linear.x = 0;
+                DesiredTrajectory.linear.y = 0;
+                DesiredTrajectory.linear.z = 0;
 
-            DesiredTrajectory.angular.x = 0;
-            DesiredTrajectory.angular.y = 0;
-            DesiredTrajectory.angular.z = 0;
+                DesiredTrajectory.angular.x = 0;
+                DesiredTrajectory.angular.y = 0;
+                DesiredTrajectory.angular.z = 0;
 
-            print('----------------------------');
+                print('----------------------------');
 
-            self.publisher.publish(DesiredTrajectory);
+                self.publisher.publish(DesiredTrajectory);
 
     def plot(self):
         for wall in self.walls[::-1]:
