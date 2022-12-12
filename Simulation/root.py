@@ -23,7 +23,7 @@ def init_environment(wall_type):
     elif wall_type =='sphere':
         # establish environment
         env_center = np.array([[0.],[0.]]);
-        env_radius = -3;
+        env_radius = -np.sqrt((bound_w/2)**2 + (bound_h/2)**2);
         walls = (gm.Sphere(env_center, env_radius), );
         wall_gain = 1;
 
@@ -75,15 +75,15 @@ if __name__ == "__main__":
     # print(sphereworld.distance_grad(point));
 
     bound_w = 2.75;
-    bound_h = 3.25;
+    bound_h = 2.10;
 
-    x_ticks = np.linspace(-bound_w, bound_w, 60);
-    y_ticks = np.linspace(-bound_h, bound_h, 60);
+    x_ticks = np.linspace(-bound_w/2, bound_w/2, 60);
+    y_ticks = np.linspace(-bound_h/2, bound_h/2, 60);
     grid_var = gm.Grid(x_ticks, y_ticks);
 
     threshold = 10;
-    xrange = [-bound_w, bound_w];
-    yrange = [-bound_h, bound_h];
+    xrange = [-bound_w/2-0.25, bound_w/2+0.25];
+    yrange = [-bound_h/2-0.25, bound_h/2+0.25];
 
     # robots[0].control(0.025, allworld.walls, robots)
 
