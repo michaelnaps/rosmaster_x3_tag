@@ -742,7 +742,7 @@ class RobotEnvironment:
                 dinf_color = 'y';
             robot.plot(dinf_color=dinf_color);
 
-    def animate(self, Nt, dt=0.001):
+    def animate(self, Nt, dt=0.001, stop=-1):
         for i in range(Nt):
             t = i*dt;
 
@@ -751,13 +751,13 @@ class RobotEnvironment:
             self.update(dt=dt);
             self.plot();
 
-            # plt.title('t = %.3f[s]' % t)
-            plt.show(block=0);
-
-            if i == 0:
-                input("Set recorder window...");
+            if t-dt == stop:
+                plt.show(block=1);
             else:
-                plt.pause(dt);
+                plt.show(block=0);
+
+            plt.title('t = %.3f[s]' % t);
+            plt.pause(dt);
 
 
 def qp_supervisor(a_barrier, b_barrier, u_ref=None, solver='cvxopt'):

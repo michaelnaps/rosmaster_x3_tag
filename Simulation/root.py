@@ -110,13 +110,14 @@ if __name__ == "__main__":
     if ans21 == 'y':
         N = 1000;
         alpha = 0.025;
+        pause = 2.00;
 
         ans22 = input("Which environment? [p/s/a] ")
         if ans22 == 'p':
-            polyworld.animate(N, alpha);
+            polyworld.animate(N, alpha, stop=pause);
         elif ans22 =='s':
-            sphereworld.animate(N, alpha);
+            sphereworld.animate(N, alpha, stop=pause);
         elif ans22 =='a':
-            allworld.animate(N, alpha);
+            allworld.animate(N, alpha, stop=pause);
 
         print("Animation complete.");
